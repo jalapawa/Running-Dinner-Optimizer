@@ -1,42 +1,9 @@
-from logic.route_optimizer import optimize
-import requests
-import time
 import random
 import math
-
-_last_call = 0
+from api.geocode import geocode
+from logic.route_optimizer import optimize
 
 calculated = False
-
-def rate_limited(limit):
-    global _last_call
-    now = time.time()
-    elapsed = now - _last_call
-    if elapsed < limit:
-        time.sleep(limit - elapsed)
-    _last_call = time.time()
-
-def geocode(address):
-    url = "https://nominatim.openstreetmap.org/search"
-    params = {
-        "q": address + ", Aachen, Germany",
-        "format": "json",
-        "limit": 1
-    }
-    headers = {
-        "User-Agent": "Running Dinner Optimizer (https://github.com/jalapawa/Running-Dinner-Optimizer)"
-    }
-
-    rate_limited(1.5) #THIS IS A REQUIRMENT FROM NOMINATIM; DO NOT REMOVE THIS
-    r = requests.get(url, params=params, headers=headers)
-    r.raise_for_status()
-
-    data = r.json()
-    if not data:
-        raise ValueError("Address not found")
-
-    print("Geocoding data © OpenStreetMap contributors")
-    return float(data[0]["lat"]), float(data[0]["lon"])
 
 #Todo: Caculate coords for newly added groups
 def precalculate_all_coords(manager):
@@ -83,7 +50,7 @@ def calculate_distances(groups):
 
 #Mapping should come from manager (group_id_map)
 def calculate_optimum(groups, mapping, randomness_factor = 0):
-    if not is_calculation_done(): pass #Handle precalculations not finished yet
+    if not is_calculation_done(): raise Exception("Precalculation of coordinates has not been finished yet (using soft limits for API calls)")
     distances = calculate_distances(groups)
     totalGroups = len(groups)
     try:
