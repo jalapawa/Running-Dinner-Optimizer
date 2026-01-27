@@ -10,8 +10,8 @@ def handleFile(path):
 
     with path.open(newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
-        groups = row_to_dataclass(reader)
-        return groups
+        groups, keys = row_to_dataclass(reader)
+        return groups, keys
     
 
 def row_to_dataclass(reader):
@@ -24,4 +24,4 @@ def row_to_dataclass(reader):
             init = False
         group = Group(*[row[h] for h in keys])
         groups.append(group)
-    return groups
+    return groups, keys

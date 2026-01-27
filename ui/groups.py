@@ -1,13 +1,6 @@
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QListWidget, QListWidgetItem, QLabel, QVBoxLayout, QPushButton
 from PySide6.QtCore import Qt
 
-# Subclass QListWidget to update DataManager when items are dropped
-class CategoryList(QListWidget):
-    def __init__(self, category_name, manager):
-        super().__init__()
-        self.category_name = category_name
-        self.manager = manager
-
 class GroupsPage(QWidget):
     def __init__(self, switch_page, data_manager):
         super().__init__()
@@ -19,25 +12,27 @@ class GroupsPage(QWidget):
         layout = QVBoxLayout()
         #Labels
         labels_layout = QHBoxLayout()
-        labels_layout.addWidget(QLabel(f"Vorspeise"))
-        labels_layout.addWidget(QLabel(f"Hauptspeise"))
-        labels_layout.addWidget(QLabel(f"Nachspeise"))
-        labels_layout.addWidget(QLabel(f"Egal"))
+        self.label1 = QLabel(f"Vorspeise")
+        self.label2 = QLabel(f"Hauptspeise")
+        self.label3 = QLabel(f"Nachspeise")
+        self.label4 = QLabel(f"Egal")
+        labels_layout.addWidget(self.label1)
+        labels_layout.addWidget(self.label2)
+        labels_layout.addWidget(self.label3)
+        labels_layout.addWidget(self.label4)
         layout.addLayout(labels_layout)
 
         # Horizontal layout for the 3 category boxes
         category_layout = QHBoxLayout()
-        self.list1 = CategoryList("Vorspeise", self.manager)
-        self.list2 = CategoryList("Hauptspeise", self.manager)
-        self.list3 = CategoryList("Nachspeise", self.manager)
-        self.list4 = CategoryList("Egal", self.manager)
-
+        self.list1 = QListWidget()
+        self.list2 = QListWidget()
+        self.list3 = QListWidget()
+        self.list4 = QListWidget()
 
         self.list1.itemSelectionChanged.connect(lambda: self.item_selected(0))
         self.list2.itemSelectionChanged.connect(lambda: self.item_selected(1))
         self.list3.itemSelectionChanged.connect(lambda: self.item_selected(2))
         self.list4.itemSelectionChanged.connect(lambda: self.item_selected(3))
-
 
         for lst in [self.list1, self.list2, self.list3, self.list4]:
             lst.setSelectionMode(QListWidget.SingleSelection)
@@ -68,7 +63,7 @@ class GroupsPage(QWidget):
         #Add Delete Buttons
         add_layout = QHBoxLayout()
         self.add_btn = QPushButton("Manuell hinzufügen")
-        #self.add_btn.clicked.connect(lambda: self.distribute())
+        #self.add_btn.clicked.connect(lambda: self.add())
         self.delete_btn = QPushButton("Entfernen")
         self.delete_btn.clicked.connect(lambda: self.delete())
         self.distribute_btn = QPushButton("Egal aufteilen")
@@ -81,7 +76,8 @@ class GroupsPage(QWidget):
         back_btn = QPushButton("Zurück")
         back_btn.clicked.connect(lambda: self.switch_page(0))
         self.next_btn = QPushButton("Weiter")
-        self.next_btn.clicked.connect(lambda: self.switch_page(2))  # go to page 3
+        self.next_btn.clicked.connect(lambda: self.next())  # go to page 3
+        self.next_btn.setToolTip("All categories must be equalized before going forward with the optimization")
 
         nav_layout = QHBoxLayout()
         nav_layout.addWidget(back_btn)
@@ -90,25 +86,51 @@ class GroupsPage(QWidget):
 
         self.setLayout(layout)
 
+    def next(self):
+        self.manager.assign_ids()
+        self.switch_page(2)
+
     def update(self):
         # Populate list1 with all rows initially
         self.list1.clear()
         self.list2.clear()
         self.list3.clear()
         self.list4.clear()
+        keys = self.manager.get_keys()
+        totalStarter = 0
+        totalMain = 0
+        totalDessert = 0
+        totalFree = 0
         for row in self.manager.get_groups():
-            displayname = row.teamname + (" (Egal)" if row.dish == "Egal" else "")
-            item = QListWidgetItem(displayname)  # display name
+            item = QListWidgetItem(row.teamname)  # display name
             item.setData(Qt.UserRole, row)  # store dataclass
+            tooltip = ""
+            for index, (key, value) in enumerate(row.todict().items()):
+                if index > 10:
+                    break
+                name = keys[index]
+                if len(name) > 20:
+                    name = name[:20] + "..."
+                tooltip += f"{name} : {value} \n"
+            item.setToolTip(tooltip)
             match row.dish:
                 case "Vorspeise":
                     self.list1.addItem(item)
+                    totalStarter += 1
                 case "Hauptspeise":
                     self.list2.addItem(item)
+                    totalMain += 1
                 case "Nachspeise":
                     self.list3.addItem(item)
+                    totalDessert += 1
                 case "Egal":
                     self.list4.addItem(item)
+                    totalFree += 1
+        self.label1.setText(f"Vorspeise ({totalStarter})")
+        self.label2.setText(f"Hauptspeise ({totalMain})")
+        self.label3.setText(f"Nachspeise ({totalDessert})")
+        self.label4.setText(f"Egal ({totalFree})")
+        self.next_btn.setEnabled(totalStarter == totalMain and totalMain == totalDessert and totalFree == 0)
 
     def showEvent(self, event):
         super().showEvent(event)

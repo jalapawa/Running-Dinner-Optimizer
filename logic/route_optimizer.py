@@ -181,7 +181,7 @@ def optimize(totalGroups, distances):
         for j in range(1, anzahlGruppen + 1):
             if m.X[i,j].value > 0.5:
                 guests.append(j)
-        routes[i] = guests
+        routes[i] = (guests[0], guests[1])
 
 
     return routes

@@ -1,5 +1,6 @@
 import PySide6.QtWidgets as qt
 from logic.csv_handler import handleFile
+from logic.options import precalculate_all_coords
 
 class UploadPage(qt.QWidget):
     def __init__(self, switch_page, manager):
@@ -27,5 +28,8 @@ class UploadPage(qt.QWidget):
             filter="CSV Files(*.csv);;All Files(*)"
         )
         if file_path:
-            self.manager.set_groups(handleFile(file_path))
+            groups, keys = handleFile(file_path)
+            self.manager.set_groups(groups)
+            self.manager.set_keys(keys)            
+            #precalculate_all_coords(self.manager.get_groups())
             self.switch_page(1)

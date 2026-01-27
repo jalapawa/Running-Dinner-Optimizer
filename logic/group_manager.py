@@ -1,17 +1,28 @@
-from typing import List
+from typing import List, Dict
 
 class GroupManager:
     def __init__(self):
-        self.groups: List = [] 
+        self.groups: List = []
+        self.group_id_map: Dict = {}
+        self.keys = []
 
     def set_groups(self, group_list: List):
         """Replace current rows with new ones."""
         self.groups = group_list
 
+    def set_keys(self, key_list: List):
+        self.keys = key_list
+
     def get_groups(self) -> List:
         """Return all stored rows."""
-        print(self.groups)
         return self.groups
+    
+    def get_map(self) -> List:
+        """Return all stored rows."""
+        return self.group_id_map
+    
+    def get_keys(self) -> List:
+        return self.keys
 
     def add_group(self, group):
         """Add a single row."""
@@ -60,3 +71,21 @@ class GroupManager:
                         else:
                             g.dish = "Nachspeise"
                             count_nachspeise += 1
+    
+    def assign_ids(self):
+        starter_id = 1
+        main_id = (len(self.groups) // 3) + 1 
+        dessert_id = 2 * (len(self.groups)// 3) + 1
+        for group in self.groups:
+            match group.dish:
+                case "Vorspeise":
+                    group.id = starter_id
+                    starter_id += 1
+                case "Hauptspeise":
+                    group.id = main_id
+                    main_id += 1
+                case "Nachspeise":
+                    group.id = dessert_id
+                    dessert_id += 1
+            self.group_id_map[group.id] = group.teamname
+            self.group_id_map[group.teamname] = group.id

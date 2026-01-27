@@ -1,25 +1,20 @@
 import sys
-from PySide6.QtWidgets import QApplication, QWidget, QStackedWidget, QVBoxLayout, QToolBar, QMainWindow
+from PySide6.QtWidgets import QApplication, QWidget, QStackedWidget, QVBoxLayout, QToolBar, QMainWindow, QMessageBox
+from PySide6.QtCore import QStandardPaths
 from PySide6.QtGui import QAction
 from ui.groups import GroupsPage
 from ui.upload import UploadPage
-
-from logic.group_manager import GroupManager
-
-import pickle
-
-
-from PySide6.QtCore import QStandardPaths
+from ui.options import OptionsPage
 from pathlib import Path
-
-from PySide6.QtWidgets import QMessageBox
+from logic.group_manager import GroupManager
+import pickle
 
 app_data_dir = Path(
     QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
 )
 app_data_dir.mkdir(parents=True, exist_ok=True)
 
-save_file = app_data_dir / "state.pkl"
+save_file = app_data_dir / ".state.pkl"
 
 
 class MainApp(QMainWindow):
@@ -45,10 +40,14 @@ class MainApp(QMainWindow):
         toolbar.addAction(save_action)
 
         self.page_upload = UploadPage(self.switch_page, self.manager)
-        self.page_preview = GroupsPage(self.switch_page, self.manager)
+        self.page_groups = GroupsPage(self.switch_page, self.manager)
+        self.page_options = OptionsPage(self.switch_page, self.manager)
+
 
         self.stack.addWidget(self.page_upload)
-        self.stack.addWidget(self.page_preview)
+        self.stack.addWidget(self.page_groups)
+        self.stack.addWidget(self.page_options)
+
 
         layout.addWidget(self.stack)
         

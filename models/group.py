@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 @dataclass
 class Group:
@@ -13,3 +13,8 @@ class Group:
     cookInfo: str = ""
     cleaning: str = "Nein"
     further: str = ""
+    teamid: int = 0
+    coords : tuple[float, float] = (0,0)
+
+    def todict(self):
+        return asdict(self)
