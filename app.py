@@ -1,13 +1,13 @@
 import sys
 from PySide6.QtWidgets import QApplication, QWidget, QStackedWidget, QVBoxLayout, QToolBar, QMainWindow, QMessageBox
+from PySide6.QtWidgets import QDialog
 from PySide6.QtCore import QStandardPaths
 from PySide6.QtGui import QAction
-from ui.groups import GroupsPage
-from ui.upload import UploadPage
-from ui.options import OptionsPage
+from ui import GroupsPage, UploadPage, OptionsPage, ConfigDialog, DistributionPage
 from pathlib import Path
 from logic.group_manager import GroupManager
 import pickle
+from models.config import Config
 
 app_data_dir = Path(
     QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
@@ -21,6 +21,7 @@ class MainApp(QMainWindow):
     def __init__(self, manager):
         super().__init__()
         self.manager = manager
+        #self.config = config
         self.setWindowTitle("Rudi schwimmt randomizer")
         self.stack = QStackedWidget()
 
@@ -39,14 +40,21 @@ class MainApp(QMainWindow):
         save_action.triggered.connect(self.save_state)
         toolbar.addAction(save_action)
 
-        self.page_upload = UploadPage(self.switch_page, self.manager)
+        # config_action = QAction("Config", self)
+        # config_action.triggered.connect(self.configuration)
+        # toolbar.addAction(config_action)
+
+        #self.page_upload = UploadPage(self.switch_page, self.manager, self.statusBar(), self.config)
+        self.page_upload = UploadPage(self.switch_page, self.manager, self.statusBar(), None)
         self.page_groups = GroupsPage(self.switch_page, self.manager)
         self.page_options = OptionsPage(self.switch_page, self.manager)
+        self.page_distribution = DistributionPage(self.switch_page, self.manager)
 
 
         self.stack.addWidget(self.page_upload)
         self.stack.addWidget(self.page_groups)
         self.stack.addWidget(self.page_options)
+        self.stack.addWidget(self.page_distribution)
 
 
         layout.addWidget(self.stack)
@@ -54,8 +62,12 @@ class MainApp(QMainWindow):
         central.setLayout(layout)
         self.setCentralWidget(central)
 
+
         if self.manager.groups:
             self.stack.setCurrentIndex(1)
+
+                ##Debugging:
+        #self.stack.setCurrentIndex(3)
 
     def switch_page(self, index):
         self.stack.setCurrentIndex(index)
@@ -64,6 +76,7 @@ class MainApp(QMainWindow):
         try:
             with open(save_file, "wb") as f:
                 pickle.dump(self.manager, f)
+                #pickle.dump(self.config, f)
         except Exception as e:
             # Show a popup with the error
             QMessageBox.critical(
@@ -82,15 +95,25 @@ class MainApp(QMainWindow):
             self.manager = GroupManager()
             self.stack.setCurrentIndex(0)
 
+    def configuration(self):
+        dialog = ConfigDialog(self.config, self)
+        if dialog.exec() == QDialog.Accepted:
+            self.config = dialog.config
+            #self.save_state()
+
 
 manager = None
+#config = None
 
 try:
     with open(save_file, "rb") as f:
         manager = pickle.load(f)
+        #config = config.load(f)# I dont like this, prob should be using yamls after all
+
 except FileNotFoundError:
     # No saved state → start fresh
     manager = GroupManager()
+    #config = Config()
 
 app = QApplication([])
 window = MainApp(manager)

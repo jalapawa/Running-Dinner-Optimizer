@@ -5,6 +5,7 @@ class GroupManager:
         self.groups: List = []
         self.group_id_map: Dict = {}
         self.keys = []
+        self.optimum = {}
 
     def set_groups(self, group_list: List):
         """Replace current rows with new ones."""
@@ -18,11 +19,16 @@ class GroupManager:
         return self.groups
     
     def get_map(self) -> List:
-        """Return all stored rows."""
         return self.group_id_map
     
     def get_keys(self) -> List:
         return self.keys
+    
+    def get_optimum(self):
+        return self.optimum
+    
+    def set_optimum(self, optimum):
+        self.optimum = optimum
 
     def add_group(self, group):
         """Add a single row."""

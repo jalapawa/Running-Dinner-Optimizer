@@ -130,13 +130,16 @@ class OptionsPage(QWidget):
         self.result.setStyleSheet("color: green;")
         self.result.setVisible(True)
         self.optimize.setVisible(False)
+        self.manager.set_optimum(result)
+        self.switch_page(3)
 
     def on_optimizer_error(self, msg):
         self.progress.setVisible(False)
         self.result.setText(f"Solver serror: {msg}!")
         self.result.setStyleSheet("color: red;")
         self.result.setVisible(True)
-        self.optimize.setVisible(False)
+        self.optimize.setVisible(True)
+        self.optimize.setEnabled(True)
 
 
     def run_optimizer(self, groups, map, level):
@@ -148,6 +151,8 @@ class OptionsPage(QWidget):
         self.thread.started.connect(self.worker.run)
         self.worker.finished.connect(self.on_optimizer_finished)
         self.worker.error.connect(self.on_optimizer_error)
+        self.worker.error.connect(self.thread.quit)
+        self.worker.error.connect(self.worker.deleteLater)
 
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)

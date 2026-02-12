@@ -2,8 +2,7 @@ import requests
 import time
 
 _last_call = 0
-
-calculated = False
+rate = 1
 
 def rate_limited(limit):
     global _last_call
@@ -13,21 +12,18 @@ def rate_limited(limit):
         time.sleep(limit - elapsed)
     _last_call = time.time()
 
-def geocode(address):
-    url = f"https://photon.komoot.io/api/?q={address}"
+def geocode(address, city):
+    url = f"https://photon.komoot.io/api/?q={address}, {city}"
 
     headers = {
         "User-Agent": "Running Dinner Optimizer (https://github.com/jalapawa/Running-Dinner-Optimizer)"
     }
 
-    rate_limited(1) #We are using public APIs, so a soft limit to limit usage (We preload anyway so no problem)
+    rate_limited(rate) #We are using public APIs, so a soft limit to limit usage (We preload anyway so no problem)
     r = requests.get(url, headers=headers)
 
     data = r.json()
     if not data:
         raise ValueError("Address not found")
     coords = data["features"][0]["geometry"]["coordinates"]
-    print(coords)
     return coords
-
-geocode("Aachen")
