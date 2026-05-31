@@ -125,7 +125,6 @@ class OptionsPage(QWidget):
         
     def on_optimizer_finished(self, result):
         self.progress.setVisible(False)
-        print(result)
         self.result.setText(f"Solver success!")
         self.result.setStyleSheet("color: green;")
         self.result.setVisible(True)

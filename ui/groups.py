@@ -88,8 +88,6 @@ class GroupsPage(QWidget):
 
     def next(self):
         self.manager.assign_ids()
-        #Test
-        print(self.manager.get_groups())
         self.switch_page(2)
 
     def update(self):

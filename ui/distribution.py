@@ -2,6 +2,8 @@ from PySide6.QtWidgets import QWidget, QHBoxLayout, QListWidget, QListWidgetItem
 from PySide6.QtCore import Qt, QObject, QThread, Signal
 from PySide6.QtGui import QFontMetrics
 
+from logic.export import export
+
 
 # Subclass QListWidget to update DataManager when items are dropped
 
@@ -35,6 +37,14 @@ class DistributionPage(QWidget):
         for _ in range(self.groups//3):
             list = QListWidget()
             list.setUniformItemSizes(True)
+            list.setSpacing(4)
+            list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+
+            list.setStyleSheet("""
+                QScrollBar:horizontal {
+                    height: 0px;
+                }
+            """)
             fm = QFontMetrics(list.font())
             row_height = 25 
             frame = list.frameWidth() * 2
@@ -65,6 +75,14 @@ class DistributionPage(QWidget):
         for _ in range(self.groups//3):
             list = QListWidget()
             list.setUniformItemSizes(True)
+            list.setSpacing(4)
+            list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+
+            list.setStyleSheet("""
+                QScrollBar:horizontal {
+                    height: 0px;
+                }
+            """)
             fm = QFontMetrics(list.font())
             row_height = 25 
             frame = list.frameWidth() * 2
@@ -95,6 +113,13 @@ class DistributionPage(QWidget):
         for _ in range(self.groups//3):
             list = QListWidget()
             list.setUniformItemSizes(True)
+            list.setSpacing(4)
+            list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+            list.setStyleSheet("""
+                QScrollBar:horizontal {
+                    height: 0px;
+                }
+            """)
             fm = QFontMetrics(list.font())
             row_height = 25 
             frame = list.frameWidth() * 2
@@ -102,6 +127,11 @@ class DistributionPage(QWidget):
             list.setFixedHeight(row_height * 3 + frame)
             dessert_list.append(list)
             groups_dessert.addWidget(list)
+
+        buttons = QHBoxLayout()
+        export_btn = QPushButton("Export to csv")
+        export_btn.clicked.connect(lambda: export(self.manager))  # go to page 3
+        buttons.addWidget(export_btn)
 
         layout_dessert.addLayout(legend_dessert)
         layout_dessert.addLayout(groups_dessert)
@@ -122,25 +152,28 @@ class DistributionPage(QWidget):
         layout.addLayout(labels[2])
         layout.addLayout(layout_dessert)
 
+        layout.addLayout(buttons)
+        
+
         self.setLayout(layout)
 
     def showEvent(self, event):
         super().showEvent(event)
         self.update()  # called automatically when page is shown
 
+
     def update(self):
         self.fillDistributions()
 
     def fillDistributions(self):
-        print("Doing it!")
         optimum = self.manager.get_optimum()
         for host, (guest1, guest2) in optimum.items():
             listnum = (host - 1) // (self.groups // 3)
             currList = self.all_lists[listnum][(host - 1) % (self.groups // 3)]
-            print(f"{listnum}, {currList}")
-            hostItem = QListWidgetItem(str(host))
-            guest1Item = QListWidgetItem(str(guest1))  
-            guest2Item = QListWidgetItem(str(guest2))
+            mappings = self.manager.get_map()
+            hostItem = QListWidgetItem(str(mappings[host]))
+            guest1Item = QListWidgetItem(str(mappings[guest1]))  
+            guest2Item = QListWidgetItem(str(mappings[guest2]))
             currList.addItem(hostItem)  
             currList.addItem(guest1Item)  
             currList.addItem(guest2Item)

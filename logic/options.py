@@ -2,6 +2,7 @@ import random
 import math
 from api.geocode import geocode
 from logic.route_optimizer import optimize
+from statistics import median
 
 
 #Todo: Calculate coords for newly added groups
@@ -47,15 +48,22 @@ def calculate_distances(groups):
             distance[team1.teamname, team2.teamname] = haversine(team1.coords, team2.coords)
     return distance
 
+def randomized_distance(d, all_distances, level):
+    alpha = (level - 1) / 4  # 0..1
+
+    random_dist = random.choice(all_distances)
+
+    return (1 - alpha) * d + alpha * random_dist
+
 def calculate_optimum(groups, mapping, randomness_factor = 0):
     if not is_calculation_done(groups): raise Exception("Precalculation of coordinates has not been finished yet (using soft limits for API calls)")
     distances = calculate_distances(groups)
     totalGroups = len(groups)
     try:
         id_distances = {(mapping[team1],mapping[team2]) : distance for (team1, team2), distance in distances.items()}
-        randomized_distances = {(a,b) : (distance + randomness_factor * random.uniform(-1,1)) for (a,b), distance in id_distances.items()}
+        randomized_distances = {(a,b) : (randomized_distance(distance, distances.values(), randomness_factor)) for (a,b), distance in id_distances.items()}
         assignment = optimize(totalGroups, randomized_distances)
-        assignment_transformed = {mapping[host]: (mapping[guest1], mapping[guest2]) for host, (guest1, guest2) in assignment.items()}
+        #assignment_transformed = {mapping[host]: (mapping[guest1], mapping[guest2]) for host, (guest1, guest2) in assignment.items()}
         return assignment
     except Exception as e:
         print("Error! Optimization failed")

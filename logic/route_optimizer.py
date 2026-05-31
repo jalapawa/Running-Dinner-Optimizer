@@ -145,36 +145,6 @@ def optimize(totalGroups, distances):
         print("Solver status:", results.solver.status)
 
 
-    # for h in m.Groups:
-    #     for g in m.Groups:
-    #         print(f"X[{h},{g}] = {m.X[h,g].value}")
-
-    # print("Vorspeisen: ")
-    # for i in range(1,cutStarter):
-    #     print("#######")
-    #     print(f"{i}:")
-    #     for j in range(1, anzahlGruppen + 1):
-    #         if m.X[i,j].value > 0.5:
-    #             print(j)
-    #     print("########")
-    # print("Hauptspeisen: ")
-    # for i in range(cutStarter,cutMain):
-    #     print("#######")
-    #     print(f"{i}:")
-    #     for j in range(1, anzahlGruppen + 1):
-    #         if m.X[i,j].value > 0.5:
-    #             print(j)
-    #     print("########")
-    # print("Nachspeisen: ")
-    # for i in range(cutMain,cutDessert):
-    #     print("#######")
-    #     print(f"{i}:")
-    #     for j in range(1, anzahlGruppen + 1):
-    #         if m.X[i,j].value > 0.5:
-    #             print(j)
-    #     print("########")
-    # print("Objective value:", m.obj())
-
     routes = {}
     for i in range(1, anzahlGruppen + 1):
         guests = []
