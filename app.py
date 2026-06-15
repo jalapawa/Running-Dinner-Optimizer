@@ -1,21 +1,15 @@
 import sys
 from PySide6.QtWidgets import QApplication, QWidget, QStackedWidget, QVBoxLayout, QToolBar, QMainWindow, QMessageBox
-from PySide6.QtWidgets import QDialog
-from PySide6.QtCore import QStandardPaths
+from PySide6.QtWidgets import QDialog, QFileDialog
 from PySide6.QtGui import QAction
 from ui import GroupsPage, UploadPage, OptionsPage, ConfigDialog, DistributionPage
 from pathlib import Path
 from logic.group_manager import GroupManager
-import pickle
-from models.config import Config
+import json
+from datetime import datetime
 
-app_data_dir = Path(
-    QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
-)
-app_data_dir.mkdir(parents=True, exist_ok=True)
-
-save_file = app_data_dir / ".state.pkl"
-
+timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+save_file = f"state-{timestamp}"
 
 class MainApp(QMainWindow):
     def __init__(self, manager):
@@ -40,6 +34,9 @@ class MainApp(QMainWindow):
         save_action.triggered.connect(self.save_state)
         toolbar.addAction(save_action)
 
+        load_action = QAction("Laden", self)
+        load_action.triggered.connect(self.load_state)
+        toolbar.addAction(load_action)
         # config_action = QAction("Config", self)
         # config_action.triggered.connect(self.configuration)
         # toolbar.addAction(config_action)
@@ -73,10 +70,12 @@ class MainApp(QMainWindow):
         self.stack.setCurrentIndex(index)
 
     def save_state(self):
+        
         try:
-            with open(save_file, "wb") as f:
-                pickle.dump(self.manager, f)
-                #pickle.dump(self.config, f)
+            with open(f"data/{save_file}.json", "w") as f:
+                json.dump(self.manager.to_dict(), f, indent=4)
+            with open(f"data/.last.json", "w") as f:
+                json.dump(self.manager.to_dict(), f, indent=4)
         except Exception as e:
             # Show a popup with the error
             QMessageBox.critical(
@@ -86,14 +85,35 @@ class MainApp(QMainWindow):
             )
         else:
             # Success: optional popup or status bar
-            self.statusBar().showMessage(f"Saved successfully in {save_file}", 2000)
+            self.statusBar().showMessage(f"Saved successfully in data/{save_file}", 2000)
 
     
     def new(self):
-        with open(save_file, "wb") as f:
-            pickle.dump(GroupManager(), f)
-            self.manager = GroupManager()
-            self.stack.setCurrentIndex(0)
+        Path("data/.last.json").unlink(missing_ok=True)
+        self.manager = GroupManager()
+        self.page_upload = UploadPage(self.switch_page, self.manager, self.statusBar(), None)
+        self.page_groups = GroupsPage(self.switch_page, self.manager)
+        self.page_options = OptionsPage(self.switch_page, self.manager)
+        self.page_distribution = DistributionPage(self.switch_page, self.manager)
+        self.stack.setCurrentIndex(0)
+
+    def load_state(self):
+        filename, _ = QFileDialog.getOpenFileName(
+            self,
+            "Load State",
+            "",
+            "JSON Files (*.json)"
+        )
+
+        if not filename:
+            return
+
+        with open(filename, "r") as f:
+            data = json.load(f)
+
+        self.manager = GroupManager.from_dict(data)
+
+        self.stack.setCurrentIndex(1)
 
     def configuration(self):
         dialog = ConfigDialog(self.config, self)
@@ -106,13 +126,15 @@ manager = None
 #config = None
 
 try:
-    with open(save_file, "rb") as f:
-        manager = pickle.load(f)
+    with open("data/.last.json", "r") as f:
+        print("hello")
+        manager = GroupManager.from_dict(json.load(f))
+        print(manager)
         #config = config.load(f)# I dont like this, prob should be using yamls after all
 
 except FileNotFoundError:
-    # No saved state → start fresh
     manager = GroupManager()
+    #print(manager)
     #config = Config()
 
 app = QApplication([])

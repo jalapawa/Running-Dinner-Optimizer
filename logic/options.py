@@ -7,7 +7,7 @@ from statistics import median
 
 #Todo: Calculate coords for newly added groups
 def precalculate_all_coords(manager, statusBar, config):
-    groups = manager.get_groups()
+    groups = manager.get_groups().copy() #Shallow copy in case a group gets removed!
     total = len(groups)
     try:
         for index, group in enumerate(groups):
@@ -49,23 +49,25 @@ def calculate_distances(groups):
     return distance
 
 def randomized_distance(d, all_distances, level):
+    return d
     alpha = (level - 1) / 4  # 0..1
 
     random_dist = random.choice(all_distances)
 
     return (1 - alpha) * d + alpha * random_dist
 
-def calculate_optimum(groups, mapping, randomness_factor = 0):
+def calculate_optimum(groups, mapping, randomness_factor, besties, haties):
     if not is_calculation_done(groups): raise Exception("Precalculation of coordinates has not been finished yet (using soft limits for API calls)")
     distances = calculate_distances(groups)
     totalGroups = len(groups)
     try:
         id_distances = {(mapping[team1],mapping[team2]) : distance for (team1, team2), distance in distances.items()}
-        randomized_distances = {(a,b) : (randomized_distance(distance, distances.values(), randomness_factor)) for (a,b), distance in id_distances.items()}
-        assignment = optimize(totalGroups, randomized_distances)
+        randomized_distances = {(a,b) : (randomized_distance(distance, list(distances.values()), randomness_factor)) for (a,b), distance in id_distances.items()}
+        besties_to_id = [(mapping[team1.teamname],mapping[team2.teamname]) for (team1, team2) in besties]
+        haties_to_id = [(mapping[team1.teamname],mapping[team2.teamname]) for (team1, team2) in haties]
+        assignment = optimize(totalGroups, randomized_distances, besties_to_id, haties_to_id)
         #assignment_transformed = {mapping[host]: (mapping[guest1], mapping[guest2]) for host, (guest1, guest2) in assignment.items()}
         return assignment
     except Exception as e:
-        print("Error! Optimization failed")
-
+        print(f"Error! Optimization failed: {e}")
 

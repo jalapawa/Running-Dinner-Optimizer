@@ -1,4 +1,5 @@
 from typing import List, Dict
+from models.group import Group
 
 class GroupManager:
     def __init__(self):
@@ -6,6 +7,35 @@ class GroupManager:
         self.group_id_map: Dict = {}
         self.keys = []
         self.optimum = {}
+        self.haties: List = []
+        self.besties: List = []
+
+    def to_dict(self):
+        return {
+            "groups": [group.to_dict() for group in self.groups],
+            "group_id_map": self.group_id_map,
+            "keys": self.keys,
+            "optimum": self.optimum,
+            "haties": self.haties,
+            "besties": self.besties
+        }
+    
+    @classmethod
+    def from_dict(cls, data):
+        manager = cls()
+
+        manager.groups = [
+            Group(**g)
+            for g in data["groups"]
+        ]
+
+        manager.group_id_map = data["group_id_map"]
+        manager.keys = data["keys"]
+        manager.optimum = data["optimum"]
+        manager.haties = data["haties"]
+        manager.besties = data["besties"]
+
+        return manager
 
     def set_groups(self, group_list: List):
         """Replace current rows with new ones."""
@@ -34,6 +64,33 @@ class GroupManager:
         """Add a single row."""
         self.groups.append(group)
 
+    def add_besties(self, groupA, groupB):
+        self.besties.append(
+            ((next((p for p in self.groups if p.teamname == groupA), None)),
+            (next((p for p in self.groups if p.teamname == groupB), None)))
+        )
+
+    def add_haties(self, groupA, groupB):
+        self.haties.append(
+            ((next((p for p in self.groups if p.teamname == groupA), None)),
+            (next((p for p in self.groups if p.teamname == groupB), None)))
+        )
+
+    def get_besties(self):
+        return self.besties
+    
+    def get_haties(self):
+        return self.haties
+    
+    def del_besties(self, pairing):
+        match = next((p for p in self.besties if p[0].teamname == pairing.split(" : ")[0] and p[1].teamname == pairing.split(" : ")[1]), None)
+        self.besties.remove(match)
+
+
+    def del_haties(self, pairing):
+        match = next((p for p in self.besties if p[0].teamname == pairing.split(" : ")[0] and p[1].teamname == pairing.split(" : ")[1]), None)
+        self.haties.remove(match)
+
     def delete_group(self, teamname):
         match = next((p for p in self.groups if p.teamname == teamname), None)
         self.groups.remove(match)
@@ -42,6 +99,7 @@ class GroupManager:
     def change_dish(self, team, newdish):
         match = next((p for p in self.groups if p.teamname == team), None)
         match.dish = newdish
+        print(f"{match = } {match.dish = } {newdish = }")
 
     #Can be made MUCHHH more efficient (only one run, saving indixes of egal, distributing better)
     def distribute(self):

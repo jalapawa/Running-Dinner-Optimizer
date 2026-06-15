@@ -1,9 +1,61 @@
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QListWidget, QListWidgetItem, QLabel, QVBoxLayout, QPushButton, QSlider, QProgressBar
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QListWidget, QListWidgetItem, QLabel, QVBoxLayout, QPushButton, QSlider, QProgressBar, QDialog, QComboBox, QCheckBox
 from PySide6.QtCore import Qt, QObject, QThread, Signal
 
 import logic.options as op
 
-# Subclass QListWidget to update DataManager when items are dropped
+from time import sleep
+
+class ConstraintsDialog(QDialog):
+    def __init__(self, groups, mode):
+        super().__init__()
+
+        self.mode = mode
+
+        self.groups = groups
+
+        if mode == "besties":
+            self.setWindowTitle("Besties")
+        elif mode == "haties":
+            self.setWindowTitle("Haties")
+
+        layout = QVBoxLayout(self)
+
+        self.checkbox = QCheckBox("Show names instead")
+        layout.addWidget(self.checkbox)
+        self.checkbox.toggled.connect(self.on_checkbox_toggled)
+
+        layout.addWidget(QLabel("First Team"))
+        self.group1 = QComboBox()
+        self.group1.addItems([g.teamname for g in groups])
+        layout.addWidget(self.group1)
+
+        layout.addWidget(QLabel("Second Team"))
+        self.group2 = QComboBox()
+        self.group2.addItems([g.teamname for g in groups])
+        layout.addWidget(self.group2)
+
+        confirm_btn = QPushButton("Confirm")
+        confirm_btn.clicked.connect(self.accept)
+        layout.addWidget(confirm_btn)
+
+    def get_selection(self):
+        if self.checkbox.isChecked():
+            return self.group1.currentText().split("]")[0][1:], self.group2.currentText().split("]")[0][1:]
+        else:
+            return self.group1.currentText(), self.group2.currentText()
+    
+    def on_checkbox_toggled(self, checked):
+        if checked:
+            self.group1.clear()
+            self.group1.addItems([f"[{g.teamname}] {g.personA}, {g.personB}" for g in self.groups])
+            self.group2.clear()
+            self.group2.addItems([f"[{g.teamname}] {g.personA}, {g.personB}" for g in self.groups])
+        else:
+            self.group1.clear()
+            self.group1.addItems([g.teamname for g in self.groups])
+            self.group2.clear()
+            self.group2.addItems([g.teamname for g in self.groups])
+
 
 class OptionsPage(QWidget):
     def __init__(self, switch_page, data_manager):
@@ -30,13 +82,18 @@ class OptionsPage(QWidget):
 
         layout_buttons = QHBoxLayout()
         self.hatiesAdd = QPushButton("+")
-        #self.hatiesAdd.clicked.connect(lambda: self.distribute())
+        self.hatiesAdd.clicked.connect(lambda: self.addHaties())
         self.hatiesDel = QPushButton("-")
-        #self.hatiesDel.clicked.connect(lambda: self.distribute())
+        self.hatiesDel.clicked.connect(lambda: self.delHaties())
         self.bestiesAdd = QPushButton("+")
-        #self.bestiesAdd.clicked.connect(lambda: self.distribute())
+        self.bestiesAdd.clicked.connect(lambda: self.addBesties())
         self.bestiesDel = QPushButton("-")
-        #self.bestiesDel.clicked.connect(lambda: self.distribute())
+        self.bestiesDel.clicked.connect(lambda: self.delBesties())
+        self.besties.itemSelectionChanged.connect(lambda: self.item_selected(0))
+        self.haties.itemSelectionChanged.connect(lambda: self.item_selected(1))
+        self.bestiesDel.setEnabled(False)
+        self.hatiesDel.setEnabled(False)
+
         layout_buttons.addWidget(self.hatiesAdd)
         layout_buttons.addWidget(self.hatiesDel)
         layout_buttons.addWidget(self.bestiesAdd)
@@ -116,12 +173,81 @@ class OptionsPage(QWidget):
 
         self.setLayout(layout)
 
+        self.updateBesties()
+        self.updateHaties()
+
 
     def calc(self):
         self.result.setVisible(False)
         self.progress.setVisible(True)
         self.optimize.setEnabled(False)
-        self.run_optimizer(self.manager.get_groups(), self.manager.get_map(), self.slider.value())
+        self.run_optimizer(self.manager.get_groups(), self.manager.get_map(), self.slider.value(), self.manager.get_besties(), self.manager.get_haties())
+
+    def addBesties(self):
+        dialog = ConstraintsDialog(self.manager.get_groups(), "besties")
+
+        if dialog.exec():
+            group_a, group_b = dialog.get_selection()
+
+            self.manager.add_besties(group_a, group_b)
+
+        self.updateBesties()
+
+    def updateBesties(self):
+        self.besties.clear()
+        for teamA, teamB in self.manager.get_besties():
+            self.besties.addItem(QListWidgetItem(f"{teamA.teamname} : {teamB.teamname}"))
+
+    def updateHaties(self):
+        self.haties.clear()
+        for teamA, teamB in self.manager.get_haties():
+            self.haties.addItem(QListWidgetItem(f"{teamA.teamname} : {teamB.teamname}"))
+
+    def addHaties(self):
+        dialog = ConstraintsDialog(self.manager.get_groups(), "haties")
+
+        if dialog.exec():
+            group_a, group_b = dialog.get_selection()
+
+            self.manager.add_haties(group_a, group_b)
+        
+        self.updateHaties()
+
+    def delBesties(self):
+        selected_item = self.besties.currentItem()
+        self.manager.del_besties(selected_item.text())
+
+        self.updateBesties()
+
+
+    def delHaties(self):
+        selected_item = self.haties.currentItem()
+        self.manager.del_haties(selected_item.text())
+
+        self.updateHaties()
+
+
+
+    def item_selected(self, category):
+        match category:
+            case 0:
+                selected_item = self.besties.currentItem()
+                if selected_item:
+                    self.hatiesDel.setEnabled(False)
+                    self.bestiesDel.setEnabled(True)
+                
+                    self.haties.blockSignals(True)
+                    self.haties.clearSelection()
+                    self.haties.blockSignals(False)
+            case 1:
+                selected_item = self.haties.currentItem()
+                if selected_item:
+                    self.bestiesDel.setEnabled(False)
+                    self.hatiesDel.setEnabled(True)
+                
+                    self.besties.blockSignals(True)
+                    self.besties.clearSelection()
+                    self.besties.blockSignals(False)
         
     def on_optimizer_finished(self, result):
         self.progress.setVisible(False)
@@ -134,16 +260,16 @@ class OptionsPage(QWidget):
 
     def on_optimizer_error(self, msg):
         self.progress.setVisible(False)
-        self.result.setText(f"Solver serror: {msg}!")
+        self.result.setText(f"Solver error: {msg}!")
         self.result.setStyleSheet("color: red;")
         self.result.setVisible(True)
         self.optimize.setVisible(True)
         self.optimize.setEnabled(True)
 
 
-    def run_optimizer(self, groups, map, level):
+    def run_optimizer(self, groups, map, level, besties, haties):
         self.thread = QThread()
-        self.worker = OptimizerWorker(groups, map, level)
+        self.worker = OptimizerWorker(groups, map, level, besties, haties)
 
         self.worker.moveToThread(self.thread)
 
@@ -163,15 +289,17 @@ class OptimizerWorker(QObject):
     finished = Signal(object)
     error = Signal(str)
 
-    def __init__(self, groups, map, level):
+    def __init__(self, groups, map, level, besties, haties):
         super().__init__()
         self.groups = groups
         self.mapping = map
         self.level = level
+        self.besties = besties
+        self.haties = haties
 
     def run(self):
         try:
-            result = op.calculate_optimum(self.groups, self.mapping, self.level)
+            result = op.calculate_optimum(self.groups, self.mapping, self.level, self.besties, self.haties)
             self.finished.emit(result)
         except Exception as e:
             self.error.emit(str(e))

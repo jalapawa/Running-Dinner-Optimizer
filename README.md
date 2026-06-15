@@ -71,7 +71,7 @@ pip install -r requirements.txt
 ```
 ## Usage
 ```
-python main.py
+python app.py
 ```
 - Import particpant table (format can be adapted in the code)
 - Choose your settings

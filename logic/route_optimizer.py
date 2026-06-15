@@ -1,7 +1,7 @@
 from pyomo.environ import *
 from itertools import permutations, product, combinations
 
-def optimize(totalGroups, distances):
+def optimize(totalGroups, distances, besties, haties):
 
     def distance(a, b):
         return distances[min(a,b), max(a,b)]
@@ -106,11 +106,35 @@ def optimize(totalGroups, distances):
 
     m.each_starter = Constraint(range(1, cutMain), rule=each_starter)
 
+    #Old linking of Guest1 and Guest2
     #Constraint: Y[guest1, guest2] will be 1 if guest1 and guest2 have been guests together at a host
-    m.seen_eachother = ConstraintList()
-    for host in m.Groups:
-        for guest1, guest2 in Pairs:
-            m.seen_eachother.add(m.X[host,guest1] + m.X[host,guest2] - m.Y[guest1,guest2] <= 1)
+    # m.seen_eachother = ConstraintList()
+    # for host in m.Groups:
+    #     for guest1, guest2 in Pairs:
+    #         m.seen_eachother.add(m.X[host,guest1] + m.X[host,guest2] - m.Y[guest1,guest2] <= 1)
+
+    # 1. Define the helper variable W
+    # W[host, guest1, guest2] is 1 ONLY if BOTH guests are at that specific host
+    m.W = Var(m.Groups, Pairs, domain=Binary)
+
+    m.link_W = ConstraintList()
+    m.link_Y_lower = ConstraintList()
+    m.link_Y_upper = ConstraintList()
+
+    for guest1, guest2 in Pairs:
+        for host in m.Groups:
+            # Constraints to force W to 0 if either guest is missing from this host
+            m.link_W.add(m.W[host, guest1, guest2] <= m.X[host, guest1])
+            m.link_W.add(m.W[host, guest1, guest2] <= m.X[host, guest2])
+            
+            # Force W to 1 if BOTH guests are at this host
+            m.link_W.add(m.X[host, guest1] + m.X[host, guest2] - m.W[host, guest1, guest2] <= 1)
+            
+            # Force Y to 1 if they are together at ANY host
+            m.link_Y_lower.add(m.Y[guest1, guest2] >= m.W[host, guest1, guest2])
+
+        # Force Y to 0 if the sum of all their shared hosts is 0
+        m.link_Y_upper.add(m.Y[guest1, guest2] <= sum(m.W[h, guest1, guest2] for h in m.Groups))
 
 
     #Constraint: Each group can only host another group or be hosted by another group at the same time (m.X[group, guest] + m.X[guest, group])
@@ -130,6 +154,16 @@ def optimize(totalGroups, distances):
                 m.no_repeat.add(
                     m.X[host1,guest1] + m.X[host1,guest2] <= 2 - (m.X[host2,guest1] + m.X[host2,guest2] - 1)
                 )
+
+
+    ##EXTRAS: Besties und HAties
+    m.besties = ConstraintList()
+    for team1, team2 in besties:
+        m.besties.add(m.X[team1, team2] + m.X[team2, team1] + m.Y[team1, team2] + m.Y[team2, team1] >= 1)
+
+    m.haties = ConstraintList()
+    for team1, team2 in haties:
+        m.haties.add(m.X[team1, team2] + m.X[team2, team1] + m.Y[team1, team2] + m.Y[team2, team1] == 0)
 
 
     #Solver
@@ -152,6 +186,5 @@ def optimize(totalGroups, distances):
             if m.X[i,j].value > 0.5:
                 guests.append(j)
         routes[i] = (guests[0], guests[1])
-
 
     return routes

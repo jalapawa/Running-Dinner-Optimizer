@@ -105,7 +105,7 @@ class GroupsPage(QWidget):
             item = QListWidgetItem(row.teamname)  # display name
             item.setData(Qt.UserRole, row)  # store dataclass
             tooltip = ""
-            for index, (key, value) in enumerate(row.todict().items()):
+            for index, (key, value) in enumerate(row.to_dict().items()):
                 if index > 10:
                     break
                 name = keys[index]

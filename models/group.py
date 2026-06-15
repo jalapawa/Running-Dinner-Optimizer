@@ -5,6 +5,7 @@ class Group:
     personA: str
     email: str
     personB: str
+    emailB: str
     teamname: str
     address: str
     dish: str    
@@ -16,5 +17,5 @@ class Group:
     id: int = 0
     coords : tuple[float, float] = (0,0)
 
-    def todict(self):
+    def to_dict(self):
         return asdict(self)
