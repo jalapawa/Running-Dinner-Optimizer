@@ -1,4 +1,4 @@
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 
 @dataclass
 class Group:
@@ -16,6 +16,7 @@ class Group:
     further: str = ""
     id: int = 0
     coords : tuple[float, float] = (0,0)
+    route: list = field(default_factory=list)
 
     def to_dict(self):
         return asdict(self)

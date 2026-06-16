@@ -7,6 +7,10 @@ from pathlib import Path
 from logic.group_manager import GroupManager
 import json
 from datetime import datetime
+import sys
+import traceback
+import faulthandler
+faulthandler.enable()
 
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 save_file = f"state-{timestamp}"
@@ -20,7 +24,7 @@ class MainApp(QMainWindow):
         self.stack = QStackedWidget()
 
         central = QWidget()
-        layout = QVBoxLayout(central)
+        self.layout = QVBoxLayout(central)
 
          # Toolbar
         toolbar = QToolBar("Main Toolbar")
@@ -54,9 +58,9 @@ class MainApp(QMainWindow):
         self.stack.addWidget(self.page_distribution)
 
 
-        layout.addWidget(self.stack)
+        self.layout.addWidget(self.stack)
         
-        central.setLayout(layout)
+        central.setLayout(self.layout)
         self.setCentralWidget(central)
 
 
@@ -91,11 +95,24 @@ class MainApp(QMainWindow):
     def new(self):
         Path("data/.last.json").unlink(missing_ok=True)
         self.manager = GroupManager()
+        self.rebuild_stack()
+
+
+    def rebuild_stack(self):
+        oldstack = self.stack
+        self.stack = QStackedWidget()
         self.page_upload = UploadPage(self.switch_page, self.manager, self.statusBar(), None)
         self.page_groups = GroupsPage(self.switch_page, self.manager)
         self.page_options = OptionsPage(self.switch_page, self.manager)
         self.page_distribution = DistributionPage(self.switch_page, self.manager)
+
+        self.stack.addWidget(self.page_upload)
+        self.stack.addWidget(self.page_groups)
+        self.stack.addWidget(self.page_options)
+        self.stack.addWidget(self.page_distribution)
         self.stack.setCurrentIndex(0)
+        self.layout.replaceWidget(oldstack, self.stack)
+        oldstack.deleteLater()
 
     def load_state(self):
         filename, _ = QFileDialog.getOpenFileName(
@@ -111,8 +128,7 @@ class MainApp(QMainWindow):
         with open(filename, "r") as f:
             data = json.load(f)
 
-        self.manager = GroupManager.from_dict(data)
-
+        self.manager.from_dict(data)
         self.stack.setCurrentIndex(1)
 
     def configuration(self):
@@ -127,9 +143,8 @@ manager = None
 
 try:
     with open("data/.last.json", "r") as f:
-        print("hello")
-        manager = GroupManager.from_dict(json.load(f))
-        print(manager)
+        manager = GroupManager()
+        manager.from_dict(json.load(f))
         #config = config.load(f)# I dont like this, prob should be using yamls after all
 
 except FileNotFoundError:

@@ -13,7 +13,7 @@ def rate_limited(limit):
     _last_call = time.time()
 
 def geocode(address, city):
-    url = f"https://photon.komoot.io/api/?q={address}, {city}"
+    url = f"https://photon.komoot.io/api/?q={address}, city={city}"
 
     headers = {
         "User-Agent": "Running Dinner Optimizer (https://github.com/jalapawa/Running-Dinner-Optimizer)"

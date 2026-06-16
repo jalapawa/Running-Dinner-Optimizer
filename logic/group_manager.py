@@ -20,22 +20,18 @@ class GroupManager:
             "besties": self.besties
         }
     
-    @classmethod
-    def from_dict(cls, data):
-        manager = cls()
+    def from_dict(self, data):
 
-        manager.groups = [
+        self.groups = [
             Group(**g)
             for g in data["groups"]
         ]
 
-        manager.group_id_map = data["group_id_map"]
-        manager.keys = data["keys"]
-        manager.optimum = data["optimum"]
-        manager.haties = data["haties"]
-        manager.besties = data["besties"]
-
-        return manager
+        self.group_id_map = data["group_id_map"]
+        self.keys = data["keys"]
+        self.optimum = data["optimum"]
+        self.haties = data["haties"]
+        self.besties = data["besties"]
 
     def set_groups(self, group_list: List):
         """Replace current rows with new ones."""
@@ -59,6 +55,16 @@ class GroupManager:
     
     def set_optimum(self, optimum):
         self.optimum = optimum
+        self.create_route()
+
+    def create_route(self):
+        if self.optimum:
+            routes = [[k for k, vals in self.optimum.items() if i in vals] for i in range(1,len(self.groups)+1)]
+            for i in range(len(self.groups)):
+                routes[i].insert(i // 3, i+1)
+            for g in self.groups:
+                g.route = routes[g.id-1]
+            
 
     def add_group(self, group):
         """Add a single row."""
@@ -99,7 +105,6 @@ class GroupManager:
     def change_dish(self, team, newdish):
         match = next((p for p in self.groups if p.teamname == team), None)
         match.dish = newdish
-        print(f"{match = } {match.dish = } {newdish = }")
 
     #Can be made MUCHHH more efficient (only one run, saving indixes of egal, distributing better)
     def distribute(self):

@@ -48,7 +48,7 @@ def optimize(totalGroups, distances, besties, haties):
     for main in range(cutStarter, cutMain):
         for x in range(1, cutDessert):
             for y in range(cutMain, cutDessert):
-                m.strecke2.add(m.Z1[main,y] + m.X[x, y] - m.Z2[s,y] <= 1)
+                m.strecke2.add(m.Z1[main,y] + m.X[x, y] - m.Z2[main,y] <= 1) #IS THAT NOT FULLY WRONG?!
 
 
 
