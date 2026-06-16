@@ -22,35 +22,54 @@ def optimize(totalGroups, distances, besties, haties):
     m.Z2 = Var(Pairs, domain=Binary) #This is to keep track of the route (namely main -> dessert)
 
 
+# Define your sets clearly for readability
+    starters = range(1, cutStarter)
+    mains = range(cutStarter, cutMain)
+    desserts = range(cutMain, cutDessert)
+    all_people = range(1, cutDessert) # Assuming everyone is a guest
 
-    #Objective function:
-    #First: sum of distance from people to their respective Starter Places
-    #Second: sum of distance from people at Starters to their Main courses
-    #Third: sum of distance for people at Mains to Desserts
-    #Note: to Party not necessary as everyone has to go anyway
+    # 1. Add a Flow variable (Integer)
+    m.F1 = Var(starters, mains, domain=Binary)
+    m.F2 = Var(mains, desserts, domain=Binary)
+
+    # 2. Much smaller Objective Function
     m.obj = Objective(
-        expr=sum(distance(x,y) * m.X[x,y] for x in range(1, cutStarter) for y in range(cutStarter, cutDessert)) #Strecken erstmal zur Vorspeise zu kommen
-            + sum(distance(s,y) * m.Z1[s,y] for s,y in ([(x, y) for x, y in product(range(1, cutStarter), range(1, cutDessert)) if x != y])) #Wenn jemand von starter s zu hauptspeise y will, wird m.Z1[s,y] true sein
-            + sum(distance(main,y) * m.Z2[main,y] for main,y in ([(x, y) for x, y in product(range(cutStarter, cutMain), range(1, cutDessert)) if x != y]))
-        ,
+        expr=(
+            sum(distance(x, y) * m.X[x, y] for x in starters for y in all_people)
+            + sum(distance(s, m_course) * m.Z1[s, m_course] for s in starters for m_course in mains)
+            + sum(distance(m_course, d) * m.Z2[m_course, d] for m_course in mains for d in desserts)
+        ),
         sense=minimize
     )
 
-    #Used for the distance starter -> main
-    m.strecke1 = ConstraintList()
-    for s in range(1, cutStarter):
-        for x in range(1, cutDessert):
-            for y in range(cutStarter, cutMain):
-                m.strecke1.add(m.X[s,y] + m.X[x, y] - m.Z1[s,y] <= 1)
-            
-    #Used for distance main -> dessert
-    m.strecke2 = ConstraintList()
-    for main in range(cutStarter, cutMain):
-        for x in range(1, cutDessert):
-            for y in range(cutMain, cutDessert):
-                m.strecke2.add(m.Z1[main,y] + m.X[x, y] - m.Z2[main,y] <= 1) #IS THAT NOT FULLY WRONG?!
+    m.strecke_flow = ConstraintList()
 
+    # 3. Flow Conservation Constraints (No more looping over 'all_people'!)
+    BIG_M = 4 # Max number of people traveling from one specific kitchen to another
 
+    for s in starters:
+        # People leaving starter s must equal total flow out of s
+        m.strecke_flow.add(sum(m.F1[s, m_course] for m_course in mains) == sum(m.X[s, y] for y in all_people) + 1) #1 because starter of course also eats there
+
+    for m_course in mains:
+        # People arriving at main m must equal total flow into m
+        m.strecke_flow.add(sum(m.F1[s, m_course] for s in starters) == sum(m.X[m_course, y] for y in all_people) + 1)
+        
+        # Flow out of main m to desserts
+        m.strecke_flow.add(sum(m.F2[m_course, d] for d in desserts) == sum(m.X[m_course, y] for y in all_people) + 1)
+
+    for d in desserts:
+        # Flow into dessert d
+        m.strecke_flow.add(sum(m.F2[m_course, d] for m_course in mains) == sum(m.X[d, y] for y in all_people) + 1)
+
+    # 4. Link Flow to your Binary Z variables
+    for s in starters:
+        for m_course in mains:
+            m.strecke_flow.add(m.F1[s, m_course] <= m.Z1[s, m_course])
+
+    for m_course in mains:
+        for d in desserts:
+            m.strecke_flow.add(m.F2[m_course, d] <= m.Z2[m_course, d])
 
     #Constraints fr
     #Two guests per group
@@ -178,6 +197,15 @@ def optimize(totalGroups, distances, besties, haties):
     else:
         print("Solver status:", results.solver.status)
 
+    for s in starters:
+        for m_course in mains:
+            if m.Z1[s,m_course].value > 0.5:
+                print(f"{s} -> {m_course} : {m.Z1[s,m_course].value}, dist: {distance(s, m_course) * m.Z1[s, m_course].value}")
+    print("---------------")
+    for m_course in mains:
+        for d in desserts:
+            if m.Z2[m_course,d].value > 0.5:
+                print(f"{m_course} -> {d} : {m.Z2[m_course,d].value}, dist: {distance(m_course,d) * m.Z2[m_course,d].value}")
 
     routes = {}
     for i in range(1, anzahlGruppen + 1):
@@ -186,5 +214,5 @@ def optimize(totalGroups, distances, besties, haties):
             if m.X[i,j].value > 0.5:
                 guests.append(j)
         routes[i] = (guests[0], guests[1])
-
+    print(routes)
     return routes

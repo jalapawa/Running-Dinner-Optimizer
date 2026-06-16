@@ -92,8 +92,6 @@ class GroupsPage(QWidget):
 
     def update(self):
         # Populate list1 with all rows initially
-        print("Updating with")
-        print(f"{self.manager.get_groups()}")
         self.list1.clear()
         self.list2.clear()
         self.list3.clear()

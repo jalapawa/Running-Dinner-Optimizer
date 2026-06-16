@@ -8,9 +8,6 @@ from logic.group_manager import GroupManager
 import json
 from datetime import datetime
 import sys
-import traceback
-import faulthandler
-faulthandler.enable()
 
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 save_file = f"state-{timestamp}"

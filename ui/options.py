@@ -251,11 +251,13 @@ class OptionsPage(QWidget):
         
     def on_optimizer_finished(self, result):
         self.progress.setVisible(False)
+        print("Optimizer finish received")
         self.result.setText(f"Solver success!")
         self.result.setStyleSheet("color: green;")
         self.result.setVisible(True)
         self.optimize.setVisible(False)
         self.manager.set_optimum(result)
+        print("Switching page now")
         self.switch_page(3)
 
     def on_optimizer_error(self, msg):
@@ -300,6 +302,7 @@ class OptimizerWorker(QObject):
     def run(self):
         try:
             result = op.calculate_optimum(self.groups, self.mapping, self.level, self.besties, self.haties)
+            print("After optimization res")
             self.finished.emit(result)
         except Exception as e:
             self.error.emit(str(e))

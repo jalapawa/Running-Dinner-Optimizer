@@ -143,41 +143,41 @@ def export(manager):
 
 
     
-    # routes = [[groups[i].coords,
-    #             groups[groups[i].route[0]-1].coords,
-    #             groups[groups[i].route[1]-1].coords,
-    #             groups[groups[i].route[2]-1].coords,
-    #             #afterpartycoords
-    #         ] for i in range(len(groups))]
+    routes = [[groups[i].coords,
+                groups[groups[i].route[0]-1].coords,
+                groups[groups[i].route[1]-1].coords,
+                groups[groups[i].route[2]-1].coords,
+                #afterpartycoords
+            ] for i in range(len(groups))]
     
 
-    # colors = [colorsys.hsv_to_rgb(i / len(groups), 1.0, 1.0) for i in range(len(groups))]
+    colors = [colorsys.hsv_to_rgb(i / len(groups), 1.0, 1.0) for i in range(len(groups))]
 
-    # lines = []
+    lines = []
 
-    # for i, (route, color) in enumerate(zip(routes, colors)):
-    #     lats = [p[0] for p in route]
-    #     lons = [p[1] for p in route]
+    for i, (route, color) in enumerate(zip(routes, colors)):
+        lats = [p[0] for p in route]
+        lons = [p[1] for p in route]
 
-    #     line, = plt.plot(
-    #         lons,
-    #         lats,
-    #         color=color,
-    #         label=f"Vehicle {i+1}",
-    #         linewidth=2
-    #     )
-    #     lines.append(line)
+        line, = plt.plot(
+            lons,
+            lats,
+            color=color,
+            label=f"Vehicle {i+1}",
+            linewidth=2
+        )
+        lines.append(line)
 
-    # leg = plt.legend()
+    leg = plt.legend()
 
-    # for legline, origline in zip(leg.get_lines(), lines):
-    #     legline.set_picker(5)
+    for legline, origline in zip(leg.get_lines(), lines):
+        legline.set_picker(5)
 
-    #     def on_pick(event):
-    #         line = lines[leg.get_lines().index(event.artist)]
-    #         line.set_visible(not line.get_visible())
-    #         plt.draw()
+        def on_pick(event):
+            line = lines[leg.get_lines().index(event.artist)]
+            line.set_visible(not line.get_visible())
+            plt.draw()
 
-    #     plt.gcf().canvas.mpl_connect("pick_event", on_pick)
+        plt.gcf().canvas.mpl_connect("pick_event", on_pick)
 
-    # plt.show()
+    plt.show()

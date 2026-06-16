@@ -93,8 +93,10 @@ class DistributionPage(QWidget):
         self.setLayout(layout)
 
     def showEvent(self, event):
+        print("Arrived at page")
         super().showEvent(event)
         self.update()  # called automatically when page is shown
+        print("Page updated!")
 
     def adaptWidgets(self):
         groups_starter = QHBoxLayout()
