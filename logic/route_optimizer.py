@@ -1,7 +1,7 @@
 from pyomo.environ import *
 from itertools import permutations, product, combinations
 
-def optimize(totalGroups, distances, besties, haties):
+def optimize(totalGroups, distances, besties, haties, solver_time):
 
     def distance(a, b):
         return distances[min(a,b), max(a,b)]
@@ -18,8 +18,7 @@ def optimize(totalGroups, distances, besties, haties):
     m.X = Var(m.Groups, m.Groups, domain=Binary)  #X[A,B]: A hosts group B
     Pairs = list(permutations(m.Groups, 2)) #Possible mappings (A,B)
     m.Y = Var(Pairs, domain=Binary) #We use this to track which pairs have seen eachother already
-    m.Z1 = Var(Pairs, domain=Binary) #This is to keep track of the route (namely starter -> main)
-    m.Z2 = Var(Pairs, domain=Binary) #This is to keep track of the route (namely main -> dessert)
+    # Team t travels from starter s to main m
 
 
 # Define your sets clearly for readability
@@ -28,48 +27,45 @@ def optimize(totalGroups, distances, besties, haties):
     desserts = range(cutMain, cutDessert)
     all_people = range(1, cutDessert) # Assuming everyone is a guest
 
-    # 1. Add a Flow variable (Integer)
-    m.F1 = Var(starters, mains, domain=Binary)
-    m.F2 = Var(mains, desserts, domain=Binary)
+    m.S = Var(all_people, starters, mains, domain=Binary)
+
+    # Team t travels from main m to dessert d
+    m.D = Var(all_people, mains, desserts, domain=Binary)
 
     # 2. Much smaller Objective Function
     m.obj = Objective(
         expr=(
-            sum(distance(x, y) * m.X[x, y] for x in starters for y in all_people)
-            + sum(distance(s, m_course) * m.Z1[s, m_course] for s in starters for m_course in mains)
-            + sum(distance(m_course, d) * m.Z2[m_course, d] for m_course in mains for d in desserts)
+            sum(distance(s,t) * m.X[s, t] for s in starters for t in all_people)
+            +
+            sum(
+            distance(s,main) * m.S[t,s,main]
+            for t in all_people
+            for s in starters
+            for main in mains
+            )
+            +
+            sum(
+                distance(main,d) * m.D[t,main,d]
+                for t in all_people
+                for main in mains
+                for d in desserts
+            )
         ),
         sense=minimize
     )
 
-    m.strecke_flow = ConstraintList()
-
-    # 3. Flow Conservation Constraints (No more looping over 'all_people'!)
-    BIG_M = 4 # Max number of people traveling from one specific kitchen to another
-
-    for s in starters:
-        # People leaving starter s must equal total flow out of s
-        m.strecke_flow.add(sum(m.F1[s, m_course] for m_course in mains) == sum(m.X[s, y] for y in all_people) + 1) #1 because starter of course also eats there
-
-    for m_course in mains:
-        # People arriving at main m must equal total flow into m
-        m.strecke_flow.add(sum(m.F1[s, m_course] for s in starters) == sum(m.X[m_course, y] for y in all_people) + 1)
-        
-        # Flow out of main m to desserts
-        m.strecke_flow.add(sum(m.F2[m_course, d] for d in desserts) == sum(m.X[m_course, y] for y in all_people) + 1)
-
-    for d in desserts:
-        # Flow into dessert d
-        m.strecke_flow.add(sum(m.F2[m_course, d] for m_course in mains) == sum(m.X[d, y] for y in all_people) + 1)
-
-    # 4. Link Flow to your Binary Z variables
-    for s in starters:
-        for m_course in mains:
-            m.strecke_flow.add(m.F1[s, m_course] <= m.Z1[s, m_course])
-
-    for m_course in mains:
-        for d in desserts:
-            m.strecke_flow.add(m.F2[m_course, d] <= m.Z2[m_course, d])
+    m.link_transitions = ConstraintList()
+    for t in all_people:
+        for s in starters:
+            for main in mains:
+                m.link_transitions.add(m.S[t, s, main ] <= m.X[s,t])
+                m.link_transitions.add(m.S[t, s, main ] <= m.X[main,t])
+                m.link_transitions.add( m.S[t, s, main] >= m.X[s, t] + m.X[main, t] - 1 )
+        for main in mains:
+            for d in desserts:
+                m.link_transitions.add(m.D[t, main, d ] <= m.X[main,t])
+                m.link_transitions.add(m.D[t, main, d ] <= m.X[d,t])
+                m.link_transitions.add( m.D[t, main, d] >= m.X[main, t] + m.X[d, t] - 1 )
 
     #Constraints fr
     #Two guests per group
@@ -107,33 +103,24 @@ def optimize(totalGroups, distances, besties, haties):
     for group in m.Groups:
         m.no_self.add(m.X[group, group] == 0)
 
-    #A starter cant sit with a starter
+    #Everyone needs to eat at a starter
     def each_starter(m, g1):
         return sum(m.X[g2, g1] for g2 in range(1, cutStarter)) == 1
 
     m.each_starter = Constraint(range(cutStarter, cutDessert), rule=each_starter)
 
-    #A main cant sit with a main
+    #Everyone needs to eat at a main
     def each_main(m, g1):
         return sum(m.X[g2, g1] for g2 in range(cutStarter, cutMain)) == 1
 
     m.each_main = Constraint(list(range(1, cutStarter)) + list(range(cutMain, cutDessert)), rule=each_main)
 
-    #A dessert cant sit with a dessert
-    def each_starter(m, g1):
+    #Everyone needs to eat a dessert
+    def each_dessert(m, g1):
         return sum(m.X[g2, g1] for g2 in range(cutMain, cutDessert)) == 1
 
-    m.each_starter = Constraint(range(1, cutMain), rule=each_starter)
+    m.each_dessert = Constraint(range(1, cutMain), rule=each_dessert)
 
-    #Old linking of Guest1 and Guest2
-    #Constraint: Y[guest1, guest2] will be 1 if guest1 and guest2 have been guests together at a host
-    # m.seen_eachother = ConstraintList()
-    # for host in m.Groups:
-    #     for guest1, guest2 in Pairs:
-    #         m.seen_eachother.add(m.X[host,guest1] + m.X[host,guest2] - m.Y[guest1,guest2] <= 1)
-
-    # 1. Define the helper variable W
-    # W[host, guest1, guest2] is 1 ONLY if BOTH guests are at that specific host
     m.W = Var(m.Groups, Pairs, domain=Binary)
 
     m.link_W = ConstraintList()
@@ -187,6 +174,7 @@ def optimize(totalGroups, distances, besties, haties):
 
     #Solver
     solver = SolverFactory('highs')  # or 'gurobi', 'highs', etc.
+    solver.options['time_limit'] = int(solver_time)
     results = solver.solve(m, tee=True)
 
     if (results.solver.status == SolverStatus.ok) and (results.solver.termination_condition == TerminationCondition.optimal):
@@ -196,16 +184,6 @@ def optimize(totalGroups, distances, besties, haties):
         raise RuntimeError("Optimization failed")
     else:
         print("Solver status:", results.solver.status)
-
-    for s in starters:
-        for m_course in mains:
-            if m.Z1[s,m_course].value > 0.5:
-                print(f"{s} -> {m_course} : {m.Z1[s,m_course].value}, dist: {distance(s, m_course) * m.Z1[s, m_course].value}")
-    print("---------------")
-    for m_course in mains:
-        for d in desserts:
-            if m.Z2[m_course,d].value > 0.5:
-                print(f"{m_course} -> {d} : {m.Z2[m_course,d].value}, dist: {distance(m_course,d) * m.Z2[m_course,d].value}")
 
     routes = {}
     for i in range(1, anzahlGruppen + 1):

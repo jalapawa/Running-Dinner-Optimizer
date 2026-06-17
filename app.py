@@ -6,6 +6,7 @@ from ui import GroupsPage, UploadPage, OptionsPage, ConfigDialog, DistributionPa
 from pathlib import Path
 from logic.group_manager import GroupManager
 import json
+import yaml
 from datetime import datetime
 import sys
 
@@ -13,10 +14,10 @@ timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 save_file = f"state-{timestamp}"
 
 class MainApp(QMainWindow):
-    def __init__(self, manager):
+    def __init__(self, manager, config):
         super().__init__()
         self.manager = manager
-        #self.config = config
+        self.config = config
         self.setWindowTitle("Rudi schwimmt randomizer")
         self.stack = QStackedWidget()
 
@@ -38,15 +39,14 @@ class MainApp(QMainWindow):
         load_action = QAction("Laden", self)
         load_action.triggered.connect(self.load_state)
         toolbar.addAction(load_action)
-        # config_action = QAction("Config", self)
-        # config_action.triggered.connect(self.configuration)
-        # toolbar.addAction(config_action)
+        config_action = QAction("Config", self)
+        config_action.triggered.connect(self.configuration)
+        toolbar.addAction(config_action)
 
-        #self.page_upload = UploadPage(self.switch_page, self.manager, self.statusBar(), self.config)
-        self.page_upload = UploadPage(self.switch_page, self.manager, self.statusBar(), None)
-        self.page_groups = GroupsPage(self.switch_page, self.manager)
-        self.page_options = OptionsPage(self.switch_page, self.manager)
-        self.page_distribution = DistributionPage(self.switch_page, self.manager)
+        self.page_upload = UploadPage(self.switch_page, self.manager, self.statusBar(), self.config)
+        self.page_groups = GroupsPage(self.switch_page, self.manager, self.config)
+        self.page_options = OptionsPage(self.switch_page, self.manager, self.config)
+        self.page_distribution = DistributionPage(self.switch_page, self.manager, self.config)
 
 
         self.stack.addWidget(self.page_upload)
@@ -98,10 +98,10 @@ class MainApp(QMainWindow):
     def rebuild_stack(self):
         oldstack = self.stack
         self.stack = QStackedWidget()
-        self.page_upload = UploadPage(self.switch_page, self.manager, self.statusBar(), None)
-        self.page_groups = GroupsPage(self.switch_page, self.manager)
-        self.page_options = OptionsPage(self.switch_page, self.manager)
-        self.page_distribution = DistributionPage(self.switch_page, self.manager)
+        self.page_upload = UploadPage(self.switch_page, self.manager, self.statusBar(), self.config)
+        self.page_groups = GroupsPage(self.switch_page, self.manager, self.config)
+        self.page_options = OptionsPage(self.switch_page, self.manager, self.config)
+        self.page_distribution = DistributionPage(self.switch_page, self.manager, self.config)
 
         self.stack.addWidget(self.page_upload)
         self.stack.addWidget(self.page_groups)
@@ -131,26 +131,40 @@ class MainApp(QMainWindow):
     def configuration(self):
         dialog = ConfigDialog(self.config, self)
         if dialog.exec() == QDialog.Accepted:
-            self.config = dialog.config
-            #self.save_state()
+            self.config.clear()
+            self.config.update(dialog.config)
+            with open("config/config.yaml", "w") as f:
+                yaml.safe_dump(self.config, f)
+            
 
 
 manager = None
-#config = None
+config = None
 
 try:
     with open("data/.last.json", "r") as f:
         manager = GroupManager()
         manager.from_dict(json.load(f))
-        #config = config.load(f)# I dont like this, prob should be using yamls after all
 
 except FileNotFoundError:
     manager = GroupManager()
-    #print(manager)
-    #config = Config()
+
+try:
+    with open("config/config.yaml", "r") as f:
+        config = yaml.safe_load(f)
+except FileNotFoundError:
+    config = {
+        "city": "Aachen",
+        "afterpartylocation": "",
+        "solver_time": 300
+    }
+
+    with open("config/config.yaml", "w") as f:
+        yaml.safe_dump(config, f)
+
 
 app = QApplication([])
-window = MainApp(manager)
+window = MainApp(manager, config)
 
 window.show()
 app.exec()

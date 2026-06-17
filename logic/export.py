@@ -7,13 +7,13 @@ import colorsys
 
 import matplotlib.pyplot as plt
 
-def export(manager):
+def export(manager, config):
 
     distribution = manager.get_optimum()
     groups = manager.get_groups()
     mapping = manager.get_map()
-    afterpartyloc = "Trichtergasse 24"
-    afterpartycoords = geocode(afterpartyloc, "Aachen")
+    afterpartyloc = config["afterpartylocation"]
+    city = config["city"]
 
     groups = sorted(groups, key=lambda x: x.id)
 
@@ -67,7 +67,7 @@ def export(manager):
         ]
 
         link = "https://www.google.com/maps/dir/" + "/".join(
-            quote(addr) for addr in addresses if addr is not None
+            quote(f"{addr}, {city}") for addr in addresses if addr is not None
         )
 
         ws[f"F{i+2}"].hyperlink = link

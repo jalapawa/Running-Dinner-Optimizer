@@ -61,7 +61,7 @@ class GroupManager:
         if self.optimum:
             routes = [[k for k, vals in self.optimum.items() if i in vals] for i in range(1,len(self.groups)+1)]
             for i in range(len(self.groups)):
-                routes[i].insert(i // 3, i+1)
+                routes[i].insert(i // (len(self.groups) // 3), i+1)
             for g in self.groups:
                 g.route = routes[g.id-1]
             

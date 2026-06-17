@@ -2,10 +2,11 @@ from PySide6.QtWidgets import QWidget, QHBoxLayout, QListWidget, QListWidgetItem
 from PySide6.QtCore import Qt
 
 class GroupsPage(QWidget):
-    def __init__(self, switch_page, data_manager):
+    def __init__(self, switch_page, data_manager, config):
         super().__init__()
         self.switch_page = switch_page
         self.manager = data_manager
+        self.config = config
 
         self.current_selection = None
 

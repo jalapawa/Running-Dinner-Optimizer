@@ -3,7 +3,7 @@ from PySide6.QtCore import Qt, QObject, QThread, Signal
 
 import logic.options as op
 
-from time import sleep
+import time
 
 class ConstraintsDialog(QDialog):
     def __init__(self, groups, mode):
@@ -58,10 +58,11 @@ class ConstraintsDialog(QDialog):
 
 
 class OptionsPage(QWidget):
-    def __init__(self, switch_page, data_manager):
+    def __init__(self, switch_page, data_manager, config):
         super().__init__()
         self.switch_page = switch_page
         self.manager = data_manager
+        self.config = config
 
         layout = QVBoxLayout()
 
@@ -181,7 +182,7 @@ class OptionsPage(QWidget):
         self.result.setVisible(False)
         self.progress.setVisible(True)
         self.optimize.setEnabled(False)
-        self.run_optimizer(self.manager.get_groups(), self.manager.get_map(), self.slider.value(), self.manager.get_besties(), self.manager.get_haties())
+        self.run_optimizer(self.manager.get_groups(), self.manager.get_map(), self.slider.value(), self.manager.get_besties(), self.manager.get_haties(), self.config)
 
     def addBesties(self):
         dialog = ConstraintsDialog(self.manager.get_groups(), "besties")
@@ -269,9 +270,9 @@ class OptionsPage(QWidget):
         self.optimize.setEnabled(True)
 
 
-    def run_optimizer(self, groups, map, level, besties, haties):
+    def run_optimizer(self, groups, map, level, besties, haties, config):
         self.thread = QThread()
-        self.worker = OptimizerWorker(groups, map, level, besties, haties)
+        self.worker = OptimizerWorker(groups, map, level, besties, haties, config)
 
         self.worker.moveToThread(self.thread)
 
@@ -291,17 +292,18 @@ class OptimizerWorker(QObject):
     finished = Signal(object)
     error = Signal(str)
 
-    def __init__(self, groups, map, level, besties, haties):
+    def __init__(self, groups, map, level, besties, haties, config):
         super().__init__()
         self.groups = groups
         self.mapping = map
         self.level = level
         self.besties = besties
         self.haties = haties
+        self.config = config
 
     def run(self):
         try:
-            result = op.calculate_optimum(self.groups, self.mapping, self.level, self.besties, self.haties)
+            result = op.calculate_optimum(self.groups, self.mapping, self.level, self.besties, self.haties, self.config['solver_time'])
             print("After optimization res")
             self.finished.emit(result)
         except Exception as e:

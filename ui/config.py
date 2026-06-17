@@ -9,11 +9,13 @@ class ConfigDialog(QDialog):
         # copy so Cancel does nothing
         self.config = copy.copy(config)
 
-        self.city = QLineEdit()
-        self.city.setText(self.config.city)
-
         layout = QFormLayout(self)
-        layout.addRow("City", self.city)
+        self.fields = {}
+
+        for att, value in config.items():
+            widget = QLineEdit(str(value))
+            self.fields[att] = widget
+            layout.addRow(att, self.fields[att])
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel
@@ -23,5 +25,6 @@ class ConfigDialog(QDialog):
         layout.addRow(buttons)
 
     def accept(self):
-        self.config.city = self.city.text()
         super().accept()
+        for att in self.config.keys():
+            self.config[att] = self.fields[att].text()

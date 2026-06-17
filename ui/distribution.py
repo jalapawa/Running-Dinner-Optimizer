@@ -8,10 +8,11 @@ from logic.export import export
 # Subclass QListWidget to update DataManager when items are dropped
 
 class DistributionPage(QWidget):
-    def __init__(self, switch_page, data_manager):
+    def __init__(self, switch_page, data_manager, config):
         super().__init__()
         self.switch_page = switch_page
         self.manager = data_manager
+        self.config = config
         layout = QVBoxLayout()
 
         self.layout_starter = QHBoxLayout()
@@ -66,7 +67,7 @@ class DistributionPage(QWidget):
 
         buttons = QHBoxLayout()
         export_btn = QPushButton("Export to csv")
-        export_btn.clicked.connect(lambda: export(self.manager))  # go to page 3
+        export_btn.clicked.connect(lambda: export(self.manager, self.config))  # go to page 3
         buttons.addWidget(export_btn)
 
         self.layout_dessert.addLayout(legend_dessert)
@@ -93,84 +94,93 @@ class DistributionPage(QWidget):
         self.setLayout(layout)
 
     def showEvent(self, event):
-        print("Arrived at page")
+        print("Arrived at page") #HERE IT CRASHES SOMETIMES (BEFORE PAGE UPDATED)
         super().showEvent(event)
+        print("Step 2")
         self.update()  # called automatically when page is shown
         print("Page updated!")
 
     def adaptWidgets(self):
+        print("Step AA")
         groups_starter = QHBoxLayout()
         grouplen = len(self.manager.get_groups())
         starter_list = []
-        for _ in range(grouplen//3):
-            list = QListWidget()
-            list.setUniformItemSizes(True)
-            list.setSpacing(4)
-            list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        print("Step AB")
+        for i in range(grouplen//3):
+            print(f"Step AC{i}")
+            widget = QListWidget()
+            widget.setUniformItemSizes(True)
+            widget.setSpacing(4)
+            widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
 
-            list.setStyleSheet("""
+            widget.setStyleSheet("""
                 QScrollBar:horizontal {
                     height: 0px;
                 }
             """)
-            fm = QFontMetrics(list.font())
+            fm = QFontMetrics(widget.font())
             row_height = 25 
-            frame = list.frameWidth() * 2
+            frame = widget.frameWidth() * 2
 
-            list.setFixedHeight(row_height * 3 + frame)
-            starter_list.append(list)
-            groups_starter.addWidget(list)
+            widget.setFixedHeight(row_height * 3 + frame)
+            starter_list.append(widget)
+            groups_starter.addWidget(widget)
+        print("Step AD")
         self.layout_starter.addLayout(groups_starter)
 
         main_list = []
         groups_main = QHBoxLayout()
         for _ in range(grouplen//3):
-            list = QListWidget()
-            list.setUniformItemSizes(True)
-            list.setSpacing(4)
-            list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+            widget = QListWidget()
+            widget.setUniformItemSizes(True)
+            widget.setSpacing(4)
+            widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
 
-            list.setStyleSheet("""
+            widget.setStyleSheet("""
                 QScrollBar:horizontal {
                     height: 0px;
                 }
             """)
-            fm = QFontMetrics(list.font())
+            fm = QFontMetrics(widget.font())
             row_height = 25 
-            frame = list.frameWidth() * 2
+            frame = widget.frameWidth() * 2
 
-            list.setFixedHeight(row_height * 3 + frame)
-            main_list.append(list)
-            groups_main.addWidget(list)
+            widget.setFixedHeight(row_height * 3 + frame)
+            main_list.append(widget)
+            groups_main.addWidget(widget)
 
         self.layout_main.addLayout(groups_main)
-
+        print("Step AE")
         groups_dessert = QHBoxLayout()
         dessert_list = []
         for _ in range(grouplen//3):
-            list = QListWidget()
-            list.setUniformItemSizes(True)
-            list.setSpacing(4)
-            list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-            list.setStyleSheet("""
+            widget = QListWidget()
+            widget.setUniformItemSizes(True)
+            widget.setSpacing(4)
+            widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+            widget.setStyleSheet("""
                 QScrollBar:horizontal {
                     height: 0px;
                 }
             """)
-            fm = QFontMetrics(list.font())
+            fm = QFontMetrics(widget.font())
             row_height = 25 
-            frame = list.frameWidth() * 2
+            frame = widget.frameWidth() * 2
 
-            list.setFixedHeight(row_height * 3 + frame)
-            dessert_list.append(list)
-            groups_dessert.addWidget(list)
+            widget.setFixedHeight(row_height * 3 + frame)
+            dessert_list.append(widget)
+            groups_dessert.addWidget(widget)
         self.layout_dessert.addLayout(groups_dessert)
+        print("Step AEE")
         self.all_lists = [starter_list, main_list, dessert_list]
-
+        print("Step AF")
 
     def update(self):
+        print("Step A")
         self.adaptWidgets()
+        print("Step B")
         self.fillDistributions()
+        print("Step C")
 
     def fillDistributions(self):
         optimum = self.manager.get_optimum()

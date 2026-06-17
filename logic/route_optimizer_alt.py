@@ -1,96 +1,198 @@
-from pyomo.environ import *
+from ortools.sat.python import cp_model
+from itertools import permutations, combinations
 
-def optimize(totalGroups, distances, besties, haties):
+def optimize(totalGroups, distances, besties, haties, solver_time):
+    
+    def distance(a, b):
+        return distances[min(a, b), max(a, b)]
 
     anzahlGruppen = totalGroups
-    cutStarter = (anzahlGruppen // 3) + 1  # Hosts Starters
-    cutMain = 2 * (anzahlGruppen // 3) + 1  # Hosts Mains
-    cutDessert = anzahlGruppen + 1         # Hosts Desserts
+    cutStarter = (anzahlGruppen // 3) + 1 
+    cutMain = 2 * (anzahlGruppen // 3) + 1 
+    cutDessert = anzahlGruppen + 1          
 
-    m = ConcreteModel()
+    model = cp_model.CpModel()
 
+    groups = range(1, anzahlGruppen + 1)
     starters = range(1, cutStarter)
     mains = range(cutStarter, cutMain)
     desserts = range(cutMain, cutDessert)
-    all_teams = range(1, cutDessert)
 
-    # Cleanly generate paths without causing UnboundLocalErrors
-    starter_paths = [(y, y, main, d) for y in starters for main in mains for d in desserts]
-    main_paths = [(y, s, y, d) for y in mains for s in starters for d in desserts]
-    dessert_paths = [(y, s, main, y) for y in desserts for s in starters for main in mains]
+    # ----------------------------------------------------
+    # VARIABLES 
+    # ----------------------------------------------------
+    X = {}
+    #Groups
+    for h in groups:
+        for g in groups:
+            X[h,g] = model.NewBoolVar(f"X_{h}_{g}")
 
-    valid_combinations = starter_paths + main_paths + dessert_paths
-    # Convert to set for lightning-fast lookups in constraints
-    valid_set = set(valid_combinations)
+    #Every host exactly two groups
+    for h in groups:
+        model.Add(
+            sum(X[h, g] for g in groups) == 2
+        )
+    #Forbidden selfvisits
+    for g in groups:
+        model.Add(X[g, g] == 0)
+    #Every group at exactly two hosts
+    for g in groups:
+        model.Add(
+            sum(X[h, g] for h in groups) == 2
+        )
+    ### REDUNDANT BECAUSE OF THE NEXT CONS?
+    # #No starter at starter
+    # for host in starters:
+    #     for guest in starters:
+    #         model.Add(X[host, guest] == 0)
+    # #No main at main
+    # for host in mains:
+    #     for guest in mains:
+    #         model.Add(X[host, guest] == 0)
+    # #No dessert at dessert
+    # for host in desserts:
+    #     for guest in desserts:
+    #         model.Add(X[host, guest] == 0)
+    #Eat at some starter
+    for g in list(mains) + list(desserts):
+        model.Add(
+            sum(X[h, g] for h in starters) == 1
+        )
+    #Eat at some main
+    for g in list(starters) + list(desserts):
+        model.Add(
+            sum(X[h, g] for h in mains) == 1
+        )
+    #Eat at some dessert
+    for g in list(starters) + list(mains):
+        model.Add(
+            sum(X[h, g] for h in desserts) == 1
+        )
 
-    # Define the decision variable
-    m.Y = Var(valid_combinations, domain=Binary)
+    #Meeting constraint :O
 
-    # Static calculation of path distances
-    def get_path_distance(y, s, main, d):
-        # Calculates: Home -> Starter -> Main -> Dessert -> Home
-        # (If they are hosting, distance automatically calculates as 0 where appropriate)
-        return (distances[min(y, s), max(y, s)] + 
-                distances[min(s, main), max(s, main)] + 
-                distances[min(main, d), max(main, d)] + 
-                distances[min(d, y), max(d, y)])
+    meet = {}
+    together = {}
 
-    m.obj = Objective(
-        expr=sum(get_path_distance(y, s, main, d) * m.Y[y, s, main, d] for y, s, main, d in valid_combinations),
-        sense=minimize
-    )
+    for a, b in combinations(groups, 2):
 
-    m.constraints = ConstraintList()
+        # Pair has met somewhere
+        meet[a, b] = model.NewBoolVar(f"meet_{a}_{b}")
 
-    # Rule A: Every team must have exactly one path for the evening
-    for y in all_teams:
-        m.constraints.add(sum(m.Y[_y, s, main, d] for _y, s, main, d in valid_combinations if _y == y) == 1)
+        meeting_events = [
+            X[a, b],  # A hosts B
+            X[b, a],  # B hosts A
+        ]
 
-    # Rule B: Perfect Mixing (No two teams can meet twice)
-    for y1 in all_teams:
-        for y2 in all_teams:
-            if y1 < y2:
-                # They can't share a starter AND a main
-                for s in starters:
-                    for main in mains:
-                        # Only add variables if the paths actually exist in our filtered list
-                        y1_paths = [m.Y[y1, s, main, d] for d in desserts if (y1, s, main, d) in valid_set]
-                        y2_paths = [m.Y[y2, s, main, d] for d in desserts if (y2, s, main, d) in valid_set]
-                        if y1_paths and y2_paths:
-                            m.constraints.add(sum(y1_paths) + sum(y2_paths) <= 1)
+        # A and B are co-guests at host h
+        for h in groups:
+            if h in (a,b):
+                continue
+            t = model.NewBoolVar(f"together_{h}_{a}_{b}")
+            together[h, a, b] = t
 
-                # They can't share a main AND a dessert
-                for main in mains:
-                    for d in desserts:
-                        y1_paths = [m.Y[y1, s, main, d] for s in starters if (y1, s, main, d) in valid_set]
-                        y2_paths = [m.Y[y2, s, main, d] for d in starters if (y2, s, main, d) in valid_set]
-                        if y1_paths and y2_paths:
-                            m.constraints.add(sum(y1_paths) + sum(y2_paths) <= 1)
-                
-                for starter in starters:
-                    for d in desserts:
-                        y1_paths = [m.Y[y1, s, main, d] for s in starters if (y1, s, main, d) in valid_set]
-                        y2_paths = [m.Y[y2, s, main, d] for d in starters if (y2, s, main, d) in valid_set]
-                        if y1_paths and y2_paths:
-                            m.constraints.add(sum(y1_paths) + sum(y2_paths) <= 1)
+            model.AddMultiplicationEquality(
+                t,
+                [X[h, a], X[h, b]]
+            )
 
+            meeting_events.append(t)
 
-    #Solver
-    solver = SolverFactory('highs')  # or 'gurobi', 'highs', etc.
-    results = solver.solve(m, tee=True)
+        #Only one meeting is okey!
+        model.Add(
+            sum(meeting_events) <= 1
+        )
 
-    if (results.solver.status == SolverStatus.ok) and (results.solver.termination_condition == TerminationCondition.optimal):
-        print("Solver found optimal solution")
-    elif results.solver.termination_condition == TerminationCondition.infeasible:
-        print("Model is infeasible")
-        raise RuntimeError("Optimization failed")
+        # meet[a,b] = OR(all meeting events)
+        # This is a helper variable for besties and haties: meet[a,b] = 0: they havent met yet, meet[a,b] = 1: they have met already
+        model.AddMaxEquality(
+            meet[a, b],
+            meeting_events
+        )
+    for a,b in besties:
+        a,b = min(a,b), max(a,b)
+        model.Add(meet[a,b] == 1)
+    for a,b in haties:
+        a,b = min(a,b), max(a,b)
+        model.Add(meet[a,b] == 0)
+
+    #S
+    S = {}
+    for t in groups:
+        for s in starters:
+            for m in mains:
+                S[t,s,m] = model.NewBoolVar(f"S_{t}_{s}_{m}")
+
+                model.AddMultiplicationEquality(
+                    S[t,s,m],
+                    [X[s,t], X[m,t]]
+                )
+    #D
+    D = {}
+    for t in groups:
+        for m in mains:
+            for d in desserts:
+                D[t,m,d] = model.NewBoolVar(f"D_{t}_{m}_{d}")
+
+                model.AddMultiplicationEquality(
+                    D[t,m,d],
+                    [X[m,t], X[d,t]]
+                )
+    objective = []
+
+    # Home -> starter
+    for s in starters:
+        for t in groups:
+            objective.append(
+                distance(s,t) * X[s,t]
+            )
+
+    # Starter -> main
+    for t in groups:
+        for s in starters:
+            for m in mains:
+                objective.append(
+                    distance(s,m) * S[t,s,m]
+                )
+
+    # Main -> dessert
+    for t in groups:
+        for m in mains:
+            for d in desserts:
+                objective.append(
+                    distance(m,d) * D[t,m,d]
+                )
+
+    model.Minimize(sum(objective))
+
+    solver = cp_model.CpSolver()
+    solver.parameters.max_time_in_seconds = float(solver_time)
+    solver.parameters.log_search_progress = True
+    status = solver.Solve(model)
+
+    if status == cp_model.OPTIMAL:
+        print("Optimal solution found")
+
+    elif status == cp_model.FEASIBLE:
+        print("Feasible solution found")
+
+    elif status == cp_model.INFEASIBLE:
+        raise RuntimeError("Model is infeasible")
+
     else:
-        print("Solver status:", results.solver.status)
-    # Output tracking
+        print("Status:", solver.StatusName(status))
+        raise RuntimeError("No solution found")
+    
     routes = {}
-    for y, s, main, d in valid_combinations:
-        # Check if the variable is defined and evaluated
-        if m.Y[y, s, main, d].value is not None and m.Y[y, s, main, d].value > 0.5:
-             routes[y] = (s, main) if d == y else ((s, d) if main == y else (main,d)) 
-            
+
+    for host in groups:
+        guests = []
+
+        for guest in groups:
+            if solver.Value(X[host, guest]):
+                guests.append(guest)
+
+        routes[host] = tuple(guests)
+
     print(routes)
+    return routes
