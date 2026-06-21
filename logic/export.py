@@ -14,6 +14,7 @@ def export(manager, config):
     mapping = manager.get_map()
     afterpartyloc = config["afterpartylocation"]
     city = config["city"]
+    no_dessert = config["no_dessert"]
 
     groups = sorted(groups, key=lambda x: x.id)
 
@@ -62,7 +63,7 @@ def export(manager, config):
             groups[i].address,
             groups[groups[i].route[0]-1].address,
             groups[groups[i].route[1]-1].address,
-            groups[groups[i].route[2]-1].address,
+            groups[groups[i].route[2]-1].address if not no_dessert else None,
             afterpartyloc
         ]
 
@@ -116,26 +117,27 @@ def export(manager, config):
 
     ws.append([])
 
-    team1 = ["Nachspeise bei:"]
-    team2 = [""]
-    team3 = [""]
-    # Distribution data
-    for key, value in list(distribution.items())[(2 * len(distribution) // 3):]:
-        team1.extend([mapping[key]])
-        team2.extend([mapping[value[0]]])
-        team3.extend([mapping[value[1]]])
-    ws.append(team1)
-    for cell in ws[ws.max_row]:
-        cell.fill = purple_fill
-    ws.append(team2)
-    for cell in ws[ws.max_row]:
-        cell.fill = pink_fill
-    ws.append(team3)
-    for cell in ws[ws.max_row]:
-        cell.fill = pink_fill
+    if not no_dessert:
+        team1 = ["Nachspeise bei:"]
+        team2 = [""]
+        team3 = [""]
+        # Distribution data
+        for key, value in list(distribution.items())[(2 * len(distribution) // 3):]:
+            team1.extend([mapping[key]])
+            team2.extend([mapping[value[0]]])
+            team3.extend([mapping[value[1]]])
+        ws.append(team1)
+        for cell in ws[ws.max_row]:
+            cell.fill = purple_fill
+        ws.append(team2)
+        for cell in ws[ws.max_row]:
+            cell.fill = pink_fill
+        ws.append(team3)
+        for cell in ws[ws.max_row]:
+            cell.fill = pink_fill
 
-    for cell in ws["A"]:
-        cell.font = cell.font.copy(bold=True)
+        for cell in ws["A"]:
+            cell.font = cell.font.copy(bold=True)
 
     date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 

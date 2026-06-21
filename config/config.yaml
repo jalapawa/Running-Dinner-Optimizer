@@ -1,3 +1,4 @@
 afterpartylocation: Trichtergasse 24
 city: Aachen
-solver_time: '45'
+no_dessert: false
+solver_time: 300

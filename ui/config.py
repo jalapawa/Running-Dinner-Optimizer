@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QDialog, QFormLayout, QLineEdit, QDialogButtonBox
+from PySide6.QtWidgets import QDialog, QFormLayout, QLineEdit,QDialogButtonBox, QCheckBox, QSpinBox
 import copy
 
 class ConfigDialog(QDialog):
@@ -13,7 +13,18 @@ class ConfigDialog(QDialog):
         self.fields = {}
 
         for att, value in config.items():
-            widget = QLineEdit(str(value))
+            if isinstance(value, bool):
+                widget = QCheckBox()
+                widget.setChecked(value)
+
+            elif isinstance(value, int):
+                widget = QSpinBox()
+                widget.setRange(0, 100000)
+                widget.setValue(value)
+
+            else:
+                widget = QLineEdit(str(value))
+
             self.fields[att] = widget
             layout.addRow(att, self.fields[att])
 
@@ -26,5 +37,12 @@ class ConfigDialog(QDialog):
 
     def accept(self):
         super().accept()
-        for att in self.config.keys():
-            self.config[att] = self.fields[att].text()
+        for att, widget in self.fields.items():
+            if isinstance(widget, QCheckBox):
+                self.config[att] = widget.isChecked()
+
+            elif isinstance(widget, QSpinBox):
+                self.config[att] = widget.value()
+
+            else:
+                self.config[att] = widget.text()

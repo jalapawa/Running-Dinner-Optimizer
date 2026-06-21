@@ -156,7 +156,8 @@ except FileNotFoundError:
     config = {
         "city": "Aachen",
         "afterpartylocation": "",
-        "solver_time": 300
+        "solver_time": 300,
+        "no_dessert": False
     }
 
     with open("config/config.yaml", "w") as f:

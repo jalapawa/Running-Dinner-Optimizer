@@ -303,7 +303,7 @@ class OptimizerWorker(QObject):
 
     def run(self):
         try:
-            result = op.calculate_optimum(self.groups, self.mapping, self.level, self.besties, self.haties, self.config['solver_time'])
+            result = op.calculate_optimum(self.groups, self.mapping, self.level, self.besties, self.haties, self.config)
             print("After optimization res")
             self.finished.emit(result)
         except Exception as e:

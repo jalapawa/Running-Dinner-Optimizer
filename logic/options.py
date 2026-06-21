@@ -1,7 +1,7 @@
 import random
 import math
 from api.geocode import geocode
-from logic.route_optimizer_alt import optimize
+from logic.route_optimizer_CP import optimize
 from statistics import median
 
 
@@ -56,7 +56,7 @@ def randomized_distance(d, all_distances, level):
 
     return (1 - alpha) * d + alpha * random_dist
 
-def calculate_optimum(groups, mapping, randomness_factor, besties, haties, solver_time):
+def calculate_optimum(groups, mapping, randomness_factor, besties, haties, config):
     if not is_calculation_done(groups): raise Exception("Precalculation of coordinates has not been finished yet (using soft limits for API calls)")
     distances = calculate_distances(groups)
     totalGroups = len(groups)
@@ -65,7 +65,7 @@ def calculate_optimum(groups, mapping, randomness_factor, besties, haties, solve
         randomized_distances = {(a,b) : (randomized_distance(distance, list(distances.values()), randomness_factor)) for (a,b), distance in id_distances.items()}
         besties_to_id = [(mapping[team1.teamname],mapping[team2.teamname]) for (team1, team2) in besties]
         haties_to_id = [(mapping[team1.teamname],mapping[team2.teamname]) for (team1, team2) in haties]
-        assignment = optimize(totalGroups, randomized_distances, besties_to_id, haties_to_id, solver_time)
+        assignment = optimize(totalGroups, randomized_distances, besties_to_id, haties_to_id, config)
         #assignment_transformed = {mapping[host]: (mapping[guest1], mapping[guest2]) for host, (guest1, guest2) in assignment.items()}
         return assignment
     except Exception as e:

@@ -1,7 +1,7 @@
 from ortools.sat.python import cp_model
 from itertools import permutations, combinations
 
-def optimize(totalGroups, distances, besties, haties, solver_time):
+def optimize(totalGroups, distances, besties, haties, config):
     
     def distance(a, b):
         return distances[min(a, b), max(a, b)]
@@ -17,6 +17,9 @@ def optimize(totalGroups, distances, besties, haties, solver_time):
     starters = range(1, cutStarter)
     mains = range(cutStarter, cutMain)
     desserts = range(cutMain, cutDessert)
+    
+    solver_time = config["solver_time"]
+    no_dessert = config["no_dessert"]
 
     # ----------------------------------------------------
     # VARIABLES 
@@ -40,19 +43,6 @@ def optimize(totalGroups, distances, besties, haties, solver_time):
         model.Add(
             sum(X[h, g] for h in groups) == 2
         )
-    ### REDUNDANT BECAUSE OF THE NEXT CONS?
-    # #No starter at starter
-    # for host in starters:
-    #     for guest in starters:
-    #         model.Add(X[host, guest] == 0)
-    # #No main at main
-    # for host in mains:
-    #     for guest in mains:
-    #         model.Add(X[host, guest] == 0)
-    # #No dessert at dessert
-    # for host in desserts:
-    #     for guest in desserts:
-    #         model.Add(X[host, guest] == 0)
     #Eat at some starter
     for g in list(mains) + list(desserts):
         model.Add(
@@ -156,12 +146,13 @@ def optimize(totalGroups, distances, besties, haties, solver_time):
                 )
 
     # Main -> dessert
-    for t in groups:
-        for m in mains:
-            for d in desserts:
-                objective.append(
-                    distance(m,d) * D[t,m,d]
-                )
+    if not no_dessert:
+        for t in groups:
+            for m in mains:
+                for d in desserts:
+                    objective.append(
+                        distance(m,d) * D[t,m,d]
+                    )
 
     model.Minimize(sum(objective))
 
