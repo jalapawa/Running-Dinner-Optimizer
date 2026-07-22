@@ -64,11 +64,45 @@ The optimization model is solved using a linear solver (HiGHS).
 
 ## Installation
 
+1. Clone the repository
+
 ```bash
 git clone https://github.com/jalapawa/Running-Dinner-Optimizer.git
 cd Running-Dinner-Optimizer
+```
+
+2. Create a virtual environment (recommended)
+
+**Linux/macOS**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+**Windows (Command Prompt)**
+```cmd
+python -m venv .venv
+.venv\Scripts\activate.bat
+```
+
+**Windows (PowerShell)**
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
+3. Install the required packages
+
+```bash
 pip install -r requirements.txt
 ```
+
+4. Run the application
+
+```bash
+python app.py
+```
+
 ## Usage
 ```
 python app.py
