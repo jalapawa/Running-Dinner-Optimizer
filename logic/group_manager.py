@@ -16,8 +16,8 @@ class GroupManager:
             "group_id_map": self.group_id_map,
             "keys": self.keys,
             "optimum": self.optimum,
-            "haties": self.haties,
-            "besties": self.besties
+            "haties": [(h1.teamname, h2.teamname) for (h1,h2) in self.haties],
+            "besties": [(b1.teamname, b2.teamname) for (b1,b2) in self.besties]
         }
     
     def from_dict(self, data):
@@ -30,8 +30,21 @@ class GroupManager:
         self.group_id_map = data["group_id_map"]
         self.keys = data["keys"]
         self.optimum = data["optimum"]
-        self.haties = data["haties"]
-        self.besties = data["besties"]
+        #self.haties = data["haties"]
+        self.haties = [
+        (
+            next((p for p in self.groups if p.teamname == h1), None), 
+            next((p for p in self.groups if p.teamname == h2), None)
+        ) 
+        for (h1, h2) in data["haties"]
+        ]
+        self.besties = [
+        (
+            next((p for p in self.groups if p.teamname == b1), None), 
+            next((p for p in self.groups if p.teamname == b2), None)
+        ) 
+        for (b1, b2) in data["besties"]
+        ]
 
     def set_groups(self, group_list: List):
         """Replace current rows with new ones."""
