@@ -1,13 +1,12 @@
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
-from datetime import datetime
 from urllib.parse import quote
 from api.geocode import geocode
 import colorsys
 
 import matplotlib.pyplot as plt
 
-def export(manager, config):
+def export(manager, config, output_path):
 
     distribution = manager.get_optimum()
     groups = manager.get_groups()
@@ -139,9 +138,7 @@ def export(manager, config):
         for cell in ws["A"]:
             cell.font = cell.font.copy(bold=True)
 
-    date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-    wb.save(f"results/Rudischwimmt Einteilung-{date}.xlsx")
+    wb.save(output_path)
 
 
     

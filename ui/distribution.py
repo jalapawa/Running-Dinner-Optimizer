@@ -1,4 +1,7 @@
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QListWidget, QListWidgetItem, QLabel, QVBoxLayout, QPushButton, QSlider, QProgressBar
+from datetime import datetime
+from pathlib import Path
+
+from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget, QHBoxLayout, QListWidget, QListWidgetItem, QLabel, QVBoxLayout, QPushButton, QSlider, QProgressBar
 from PySide6.QtCore import Qt, QObject, QThread, Signal
 from PySide6.QtGui import QFontMetrics
 
@@ -66,8 +69,8 @@ class DistributionPage(QWidget):
         legend_dessert.addWidget(QLabel("Guest2"))
 
         buttons = QHBoxLayout()
-        export_btn = QPushButton("Export to csv")
-        export_btn.clicked.connect(lambda: export(self.manager, self.config))  # go to page 3
+        export_btn = QPushButton("Export to Excel")
+        export_btn.clicked.connect(self.export_distribution)
         buttons.addWidget(export_btn)
 
         self.layout_dessert.addLayout(legend_dessert)
@@ -92,6 +95,27 @@ class DistributionPage(QWidget):
         
 
         self.setLayout(layout)
+
+    def export_distribution(self):
+        filename = f"Rudischwimmt Einteilung-{datetime.now():%Y-%m-%d_%H-%M-%S}.xlsx"
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save distribution",
+            str(Path.home() / filename),
+            "Excel files (*.xlsx)",
+        )
+
+        if not file_path:
+            return
+
+        path = Path(file_path)
+        if path.suffix.lower() != ".xlsx":
+            path = path.with_suffix(".xlsx")
+
+        try:
+            export(self.manager, self.config, path)
+        except Exception as error:
+            QMessageBox.critical(self, "Export failed", f"Could not save the distribution:\n{error}")
 
     def showEvent(self, event):
         print("Arrived at page") #HERE IT CRASHES SOMETIMES (BEFORE PAGE UPDATED)

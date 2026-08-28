@@ -1,17 +1,15 @@
-import sys
 from PySide6.QtWidgets import QApplication, QWidget, QStackedWidget, QVBoxLayout, QToolBar, QMainWindow, QMessageBox
 from PySide6.QtWidgets import QDialog, QFileDialog
 from PySide6.QtGui import QAction
 from ui import GroupsPage, UploadPage, OptionsPage, ConfigDialog, DistributionPage
-from pathlib import Path
 from logic.group_manager import GroupManager
+from app_paths import CONFIG_PATH, LAST_STATE_PATH, STATE_DIR, ensure_app_directories
 import json
 import yaml
 from datetime import datetime
-import sys
 
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-save_file = f"state-{timestamp}"
+save_file = STATE_DIR / f"state-{timestamp}.json"
 
 class MainApp(QMainWindow):
     def __init__(self, manager, config):
@@ -73,9 +71,9 @@ class MainApp(QMainWindow):
     def save_state(self):
         
         try:
-            with open(f"data/{save_file}.json", "w") as f:
+            with save_file.open("w", encoding="utf-8") as f:
                 json.dump(self.manager.to_dict(), f, indent=4)
-            with open(f"data/.last.json", "w") as f:
+            with LAST_STATE_PATH.open("w", encoding="utf-8") as f:
                 json.dump(self.manager.to_dict(), f, indent=4)
         except Exception as e:
             # Show a popup with the error
@@ -86,11 +84,11 @@ class MainApp(QMainWindow):
             )
         else:
             # Success: optional popup or status bar
-            self.statusBar().showMessage(f"Saved successfully in data/{save_file}", 2000)
+            self.statusBar().showMessage(f"Saved successfully in {save_file}", 2000)
 
     
     def new(self):
-        Path("data/.last.json").unlink(missing_ok=True)
+        LAST_STATE_PATH.unlink(missing_ok=True)
         self.manager = GroupManager()
         self.rebuild_stack()
 
@@ -133,16 +131,17 @@ class MainApp(QMainWindow):
         if dialog.exec() == QDialog.Accepted:
             self.config.clear()
             self.config.update(dialog.config)
-            with open("config/config.yaml", "w") as f:
+            with CONFIG_PATH.open("w", encoding="utf-8") as f:
                 yaml.safe_dump(self.config, f)
             
 
 
 manager = None
 config = None
+ensure_app_directories()
 
 try:
-    with open("data/.last.json", "r") as f:
+    with LAST_STATE_PATH.open("r", encoding="utf-8") as f:
         manager = GroupManager()
         manager.from_dict(json.load(f))
 
@@ -150,7 +149,7 @@ except FileNotFoundError:
     manager = GroupManager()
 
 try:
-    with open("config/config.yaml", "r") as f:
+    with CONFIG_PATH.open("r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 except FileNotFoundError:
     config = {
@@ -160,7 +159,7 @@ except FileNotFoundError:
         "no_dessert": False
     }
 
-    with open("config/config.yaml", "w") as f:
+    with CONFIG_PATH.open("w", encoding="utf-8") as f:
         yaml.safe_dump(config, f)
 
 

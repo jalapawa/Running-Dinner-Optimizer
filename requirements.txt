@@ -1,6 +1,7 @@
 matplotlib
 openpyxl
 ortools
+platformdirs
 PyInstaller
 PySide6
 PyYAML
