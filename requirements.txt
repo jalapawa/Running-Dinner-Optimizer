@@ -6,3 +6,4 @@ PyInstaller
 PySide6
 PyYAML
 requests
+pytest
