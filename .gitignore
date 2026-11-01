@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+data/*
+!data/.gitkeep
+results/*
+!results/.gitkeep
+forms/*
+!forms/ExampleForm.csv
+
+dist/
+build/
