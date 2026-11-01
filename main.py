@@ -1,6 +1,8 @@
 from PySide6.QtWidgets import QApplication, QWidget, QStackedWidget, QVBoxLayout, QToolBar, QMainWindow, QMessageBox
 from PySide6.QtWidgets import QDialog, QFileDialog
 from PySide6.QtGui import QAction
+from PySide6.QtCore import Qt
+
 from ui import GroupsPage, UploadPage, OptionsPage, ConfigDialog, DistributionPage
 from logic.group_manager import GroupManager
 from app_paths import CONFIG_PATH, LAST_STATE_PATH, STATE_DIR, ensure_app_directories
@@ -164,6 +166,7 @@ except FileNotFoundError:
 
 
 app = QApplication([])
+app.styleHints().setColorScheme(Qt.ColorScheme.Dark)
 window = MainApp(manager, config)
 
 window.show()
