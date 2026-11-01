@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QListWidget, QListWidgetItem, QLabel, QVBoxLayout, QPushButton, QSlider, QProgressBar, QDialog, QComboBox, QCheckBox
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QListWidget, QListWidgetItem, QLabel, QVBoxLayout, QPushButton, QSlider, QProgressBar, QDialog, QComboBox, QCheckBox, QFileDialog
 from PySide6.QtCore import Qt, QObject, QThread, Signal
 
 import logic.options as op
@@ -73,32 +73,62 @@ class OptionsPage(QWidget):
         layout_tables.addStretch()
         layout_tables.addWidget(QLabel("Besties"))
         layout_tables.addStretch()
+        layout_tables.addStretch()
+        layout_tables.addWidget(QLabel("Previous Imports"))
+        layout_tables.addStretch()
 
 
         layout_pairings = QHBoxLayout()
         self.haties = QListWidget()
         self.besties = QListWidget()
+        self.repetitions = QListWidget()
         layout_pairings.addWidget(self.haties)
         layout_pairings.addWidget(self.besties)
+        layout_pairings.addWidget(self.repetitions)
 
         layout_buttons = QHBoxLayout()
+
+        self.hatiesButtons = QHBoxLayout()
         self.hatiesAdd = QPushButton("+")
         self.hatiesAdd.clicked.connect(lambda: self.addHaties())
         self.hatiesDel = QPushButton("-")
         self.hatiesDel.clicked.connect(lambda: self.delHaties())
+
+        self.hatiesButtons.addWidget(self.hatiesAdd)
+        self.hatiesButtons.addWidget(self.hatiesDel)
+
+        self.bestiesButtons = QHBoxLayout()
         self.bestiesAdd = QPushButton("+")
         self.bestiesAdd.clicked.connect(lambda: self.addBesties())
         self.bestiesDel = QPushButton("-")
         self.bestiesDel.clicked.connect(lambda: self.delBesties())
+
+        self.bestiesButtons.addWidget(self.bestiesAdd)
+        self.bestiesButtons.addWidget(self.bestiesDel)
+
+        self.repetitionsButtons = QHBoxLayout()
+        self.repetitionsAdd = QPushButton("Import")
+        self.repetitionsAdd.clicked.connect(lambda: self.addRepetitions())
+        self.repetitionsDel = QPushButton("-")
+        self.repetitionsDel.clicked.connect(lambda: self.delRepetitions())
+        self.repetitionsClear = QPushButton("X")
+        self.repetitionsClear.clicked.connect(lambda: self.clearRepetitions())
+
+        self.repetitionsButtons.addWidget(self.repetitionsAdd)
+        self.repetitionsButtons.addWidget(self.repetitionsDel)
+        self.repetitionsButtons.addWidget(self.repetitionsClear)
+
+
         self.besties.itemSelectionChanged.connect(lambda: self.item_selected(0))
         self.haties.itemSelectionChanged.connect(lambda: self.item_selected(1))
+        self.repetitions.itemSelectionChanged.connect(lambda: self.item_selected(2))
         self.bestiesDel.setEnabled(False)
         self.hatiesDel.setEnabled(False)
+        self.repetitionsDel.setEnabled(False)
 
-        layout_buttons.addWidget(self.hatiesAdd)
-        layout_buttons.addWidget(self.hatiesDel)
-        layout_buttons.addWidget(self.bestiesAdd)
-        layout_buttons.addWidget(self.bestiesDel)
+        layout_buttons.addLayout(self.hatiesButtons)
+        layout_buttons.addLayout(self.bestiesButtons)
+        layout_buttons.addLayout(self.repetitionsButtons)
         #Slider for randomness
         self.slider = BetterSlider(Qt.Horizontal)
         self.slider.setMinimum(0)
@@ -176,6 +206,7 @@ class OptionsPage(QWidget):
 
         self.updateBesties()
         self.updateHaties()
+        self.updateRepetitions()
 
 
     def calc(self):
@@ -204,6 +235,12 @@ class OptionsPage(QWidget):
         for teamA, teamB in self.manager.get_haties():
             self.haties.addItem(QListWidgetItem(f"{teamA.teamname} : {teamB.teamname}"))
 
+    def updateRepetitions(self):
+        self.repetitions.clear()
+        for teamA, teamB in self.manager.get_repetitions():
+            self.repetitions.addItem(QListWidgetItem(f"{teamA.teamname} : {teamB.teamname}"))
+
+
     def addHaties(self):
         dialog = ConstraintsDialog(self.manager.get_groups(), "haties")
 
@@ -217,6 +254,7 @@ class OptionsPage(QWidget):
     def delBesties(self):
         selected_item = self.besties.currentItem()
         self.manager.del_besties(selected_item.text())
+        self.bestiesDel.setEnabled(False)
 
         self.updateBesties()
 
@@ -224,8 +262,34 @@ class OptionsPage(QWidget):
     def delHaties(self):
         selected_item = self.haties.currentItem()
         self.manager.del_haties(selected_item.text())
+        self.hatiesDel.setEnabled(False)
 
         self.updateHaties()
+
+    def addRepetitions(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+                    parent = self,
+                    caption="Select XLSX file",
+                    dir="",
+                    filter="XLSX Files(*.xlsx);;All Files(*)"
+                )
+        if file_path:
+            self.manager.add_repetitions(file_path)
+
+        self.updateRepetitions()
+
+    def delRepetitions(self):
+        selected_item = self.repetitions.currentItem()
+        self.manager.del_repetitions(selected_item.text())
+        self.repetitionsDel.setEnabled(False)
+        
+        self.updateRepetitions()
+
+    def clearRepetitions(self):
+        self.manager.clear_repetitions()
+        self.repetitionsDel.setEnabled(False)
+
+        self.updateRepetitions()
 
 
 
@@ -235,20 +299,41 @@ class OptionsPage(QWidget):
                 selected_item = self.besties.currentItem()
                 if selected_item:
                     self.hatiesDel.setEnabled(False)
+                    self.repetitionsDel.setEnabled(False)
                     self.bestiesDel.setEnabled(True)
                 
                     self.haties.blockSignals(True)
                     self.haties.clearSelection()
                     self.haties.blockSignals(False)
+                    self.repetitions.blockSignals(True)
+                    self.repetitions.clearSelection()
+                    self.repetitions.blockSignals(False)
             case 1:
                 selected_item = self.haties.currentItem()
                 if selected_item:
                     self.bestiesDel.setEnabled(False)
+                    self.repetitionsDel.setEnabled(False)
                     self.hatiesDel.setEnabled(True)
                 
                     self.besties.blockSignals(True)
                     self.besties.clearSelection()
                     self.besties.blockSignals(False)
+                    self.repetitions.blockSignals(True)
+                    self.repetitions.clearSelection()
+                    self.repetitions.blockSignals(False)
+            case 2:
+                selected_item = self.repetitions.currentItem()
+                if selected_item:
+                    self.bestiesDel.setEnabled(False)
+                    self.hatiesDel.setEnabled(False)
+                    self.repetitionsDel.setEnabled(True)
+                
+                    self.besties.blockSignals(True)
+                    self.besties.clearSelection()
+                    self.besties.blockSignals(False)
+                    self.haties.blockSignals(True)
+                    self.haties.clearSelection()
+                    self.haties.blockSignals(False)
         
     def on_optimizer_finished(self, result):
         self.progress.setVisible(False)

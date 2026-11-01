@@ -1,5 +1,6 @@
 from typing import List, Dict
 from models.group import Group
+from logic.csv_handler import extract_repetitions
 
 class GroupManager:
     def __init__(self):
@@ -9,6 +10,7 @@ class GroupManager:
         self.optimum = {}
         self.haties: List = []
         self.besties: List = []
+        self.repetitions: List = []
 
     def to_dict(self):
         return {
@@ -17,7 +19,8 @@ class GroupManager:
             "keys": self.keys,
             "optimum": self.optimum,
             "haties": [(h1.teamname, h2.teamname) for (h1,h2) in self.haties],
-            "besties": [(b1.teamname, b2.teamname) for (b1,b2) in self.besties]
+            "besties": [(b1.teamname, b2.teamname) for (b1,b2) in self.besties],
+            "repetitions": [(b1.teamname, b2.teamname) for (b1,b2) in self.repetitions]
         }
     
     def from_dict(self, data):
@@ -44,6 +47,13 @@ class GroupManager:
             next((p for p in self.groups if p.teamname == b2), None)
         ) 
         for (b1, b2) in data["besties"]
+        ]
+        self.repetitions = [
+        (
+            next((p for p in self.groups if p.teamname == b1), None), 
+            next((p for p in self.groups if p.teamname == b2), None)
+        ) 
+        for (b1, b2) in data["repetitions"]
         ]
 
     def set_groups(self, group_list: List):
@@ -95,11 +105,21 @@ class GroupManager:
             (next((p for p in self.groups if p.teamname == groupB), None)))
         )
 
+    def add_repetitions(self, oldCSV):
+        repetitions = extract_repetitions(oldCSV)
+        for addressA, addressB in repetitions:
+            rep = ((next((p for p in self.groups if p.address.split(",")[0] == addressA), None)), (next((p for p in self.groups if p.address.split(",")[0] == addressB), None)))
+            if rep[0] is not None and rep[1] is not None:
+                self.repetitions.append(rep)
+
     def get_besties(self):
         return self.besties
     
     def get_haties(self):
         return self.haties
+
+    def get_repetitions(self):
+        return self.repetitions
     
     def del_besties(self, pairing):
         match = next((p for p in self.besties if p[0].teamname == pairing.split(" : ")[0] and p[1].teamname == pairing.split(" : ")[1]), None)
@@ -107,8 +127,15 @@ class GroupManager:
 
 
     def del_haties(self, pairing):
-        match = next((p for p in self.besties if p[0].teamname == pairing.split(" : ")[0] and p[1].teamname == pairing.split(" : ")[1]), None)
+        match = next((p for p in self.haties if p[0].teamname == pairing.split(" : ")[0] and p[1].teamname == pairing.split(" : ")[1]), None)
         self.haties.remove(match)
+
+    def del_repetitions(self, pairing):
+        match = next((p for p in self.repetitions if p[0].teamname == pairing.split(" : ")[0] and p[1].teamname == pairing.split(" : ")[1]), None)
+        self.repetitions.remove(match)
+
+    def clear_repetitions(self):
+        self.repetitions = []
 
     def delete_group(self, teamname):
         match = next((p for p in self.groups if p.teamname == teamname), None)
