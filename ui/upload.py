@@ -12,6 +12,9 @@ class UploadPage(qt.QWidget):
         self.statusBar = statusBar
         self.config = config
 
+        self._thread = None
+        self._worker = None
+
         self.setWindowTitle("Rudi schwimmt randomizer")
 
         button = qt.QPushButton("Upload")
@@ -25,6 +28,8 @@ class UploadPage(qt.QWidget):
 
 
     def on_click(self):
+        if self._thread is not None:
+            return
         file_path, _ = qt.QFileDialog.getOpenFileName(
             parent = self,
             caption="Select CSV file",
@@ -39,19 +44,24 @@ class UploadPage(qt.QWidget):
             self.switch_page(1)
 
     def background_calc(self):
-        self.thread = QThread()
-        self.worker = BackgroundTask(self.manager, self.config)
+        self._thread = QThread()
+        self._worker = BackgroundTask(self.manager, self.config)
 
-        self.worker.moveToThread(self.thread)
+        self._worker.moveToThread(self._thread)
 
-        self.thread.started.connect(self.worker.run)
+        self._thread.started.connect(self._worker.run)
 
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
-        self.worker.status_message.connect(self.statusBar.showMessage)
+        self._worker.finished.connect(self._thread.quit)
+        self._thread.finished.connect(self._cleanup_geocode_thread)
+        self._worker.status_message.connect(self.statusBar.showMessage)
 
-        self.thread.start()
+        self._thread.start()
+
+    def _cleanup_geocode_thread(self):
+        self._thread.wait()
+        self._thread = None
+        self._worker = None
+
 
 class BackgroundTask(QObject):
     finished = Signal(object)

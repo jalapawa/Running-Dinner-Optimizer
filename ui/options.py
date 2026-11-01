@@ -64,6 +64,9 @@ class OptionsPage(QWidget):
         self.manager = data_manager
         self.config = config
 
+        self._thread = None
+        self._worker = None
+
         layout = QVBoxLayout()
 
         layout_tables = QHBoxLayout()
@@ -179,6 +182,7 @@ class OptionsPage(QWidget):
 
 
     def calc(self):
+        if self._thread is not None: return
         self.result.setVisible(False)
         self.progress.setVisible(True)
         self.optimize.setEnabled(False)
@@ -271,22 +275,25 @@ class OptionsPage(QWidget):
 
 
     def run_optimizer(self, groups, map, level, besties, haties, config):
-        self.thread = QThread()
-        self.worker = OptimizerWorker(groups, map, level, besties, haties, config)
+        self._thread = QThread()
+        self._worker = OptimizerWorker(groups, map, level, besties, haties, config)
 
-        self.worker.moveToThread(self.thread)
+        self._worker.moveToThread(self._thread)
 
-        self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.on_optimizer_finished)
-        self.worker.error.connect(self.on_optimizer_error)
-        self.worker.error.connect(self.thread.quit)
-        self.worker.error.connect(self.worker.deleteLater)
+        self._thread.started.connect(self._worker.run)
+        self._worker.error.connect(self.on_optimizer_error)
+        self._worker.error.connect(self._thread.quit)
 
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
+        self._worker.finished.connect(self.on_optimizer_finished)
+        self._worker.finished.connect(self._thread.quit)
+        self._thread.finished.connect(self._cleanup_optimizer_thread)
 
-        self.thread.start()
+        self._thread.start()
+
+    def _cleanup_optimizer_thread(self):
+        self._thread.wait()
+        self._worker = None
+        self._thread = None
 
 class OptimizerWorker(QObject):
     finished = Signal(object)
