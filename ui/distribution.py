@@ -118,20 +118,14 @@ class DistributionPage(QWidget):
             QMessageBox.critical(self, "Export failed", f"Could not save the distribution:\n{error}")
 
     def showEvent(self, event):
-        print("Arrived at page") #HERE IT CRASHES SOMETIMES (BEFORE PAGE UPDATED)
         super().showEvent(event)
-        print("Step 2")
         self.update()  # called automatically when page is shown
-        print("Page updated!")
 
     def adaptWidgets(self):
-        print("Step AA")
         groups_starter = QHBoxLayout()
         grouplen = len(self.manager.get_groups())
         starter_list = []
-        print("Step AB")
         for i in range(grouplen//3):
-            print(f"Step AC{i}")
             widget = QListWidget()
             widget.setUniformItemSizes(True)
             widget.setSpacing(4)
@@ -149,7 +143,6 @@ class DistributionPage(QWidget):
             widget.setFixedHeight(row_height * 3 + frame)
             starter_list.append(widget)
             groups_starter.addWidget(widget)
-        print("Step AD")
         self.layout_starter.addLayout(groups_starter)
 
         main_list = []
@@ -174,7 +167,6 @@ class DistributionPage(QWidget):
             groups_main.addWidget(widget)
 
         self.layout_main.addLayout(groups_main)
-        print("Step AE")
         groups_dessert = QHBoxLayout()
         dessert_list = []
         for _ in range(grouplen//3):
@@ -195,16 +187,11 @@ class DistributionPage(QWidget):
             dessert_list.append(widget)
             groups_dessert.addWidget(widget)
         self.layout_dessert.addLayout(groups_dessert)
-        print("Step AEE")
         self.all_lists = [starter_list, main_list, dessert_list]
-        print("Step AF")
 
     def update(self):
-        print("Step A")
         self.adaptWidgets()
-        print("Step B")
         self.fillDistributions()
-        print("Step C")
 
     def fillDistributions(self):
         optimum = self.manager.get_optimum()
