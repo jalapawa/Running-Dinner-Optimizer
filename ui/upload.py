@@ -37,7 +37,11 @@ class UploadPage(qt.QWidget):
             filter="CSV Files(*.csv);;All Files(*)"
         )
         if file_path:
-            groups, keys = handleFile(file_path)
+            try:
+                groups, keys = handleFile(file_path)
+            except (OSError, ValueError, UnicodeDecodeError) as e:
+                qt.QMessageBox.warning(self, "Could not read CSV", str(e))
+                return
             self.manager.set_groups(groups)
             self.manager.set_keys(keys)
             self.background_calc()         #Running this in background
