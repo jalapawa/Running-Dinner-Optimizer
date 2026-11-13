@@ -23,8 +23,9 @@ def is_calculation_done(groups):
     return not (groups[-1].coords == (0,0)) #CHECK LAST GROUP FOR 00 COORDS
 
 def haversine(coord1, coord2):
-        lat1, lon1 = coord1
-        lat2, lon2 = coord2
+        # Coords are (lon, lat), the GeoJSON order Photon returns
+        lon1, lat1 = coord1
+        lon2, lat2 = coord2
 
         R = 6371.0  # Earth radius in km
 

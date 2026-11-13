@@ -3,6 +3,7 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -10,6 +11,7 @@ permissions:
 jobs:
   test:
     uses: ./.github/workflows/ci.yml
+
   build-linux:
     needs: test
     runs-on: ubuntu-24.04
@@ -30,8 +32,48 @@ jobs:
       - name: Package
         run: tar -czf RunningDinnerOptimizer-linux.tar.gz -C dist RunningDinnerOptimizer
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: RunningDinnerOptimizer-linux.tar.gz
+
+  build-windows:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build executable
+        run: pyinstaller RunningDinnerOptimizer.spec
+
+      - name: Package
+        run: Compress-Archive -Path dist/RunningDinnerOptimizer.exe -DestinationPath RunningDinnerOptimizer-windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: RunningDinnerOptimizer-windows.zip
+
+  release:
+    needs: [build-linux, build-windows]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: RunningDinnerOptimizer-linux.tar.gz
+          files: dist/*
           generate_release_notes: true

@@ -122,7 +122,7 @@ class MainApp(QMainWindow):
         if not filename:
             return
 
-        with open(filename, "r") as f:
+        with open(filename, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         self.manager.from_dict(data)

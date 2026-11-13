@@ -155,8 +155,8 @@ def export(manager, config, output_path):
     lines = []
 
     for i, (route, color) in enumerate(zip(routes, colors)):
-        lats = [p[0] for p in route]
-        lons = [p[1] for p in route]
+        lons = [p[0] for p in route]
+        lats = [p[1] for p in route]
 
         line, = plt.plot(
             lons,
