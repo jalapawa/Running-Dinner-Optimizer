@@ -97,6 +97,21 @@ class DistributionPage(QWidget):
         self.setLayout(layout)
 
     def export_distribution(self):
+        if not self.config.get("afterpartylocation", "").strip():
+            box = QMessageBox(self)
+            box.setIcon(QMessageBox.Question)
+            box.setWindowTitle("No afterparty location")
+            box.setText(
+                "Are you sure you do not want to set an afterparty location?\n"
+                "(Config → afterpartylocation)"
+            )
+            back_btn = box.addButton("Back", QMessageBox.RejectRole)
+            box.addButton("No afterparty", QMessageBox.AcceptRole)
+            box.setDefaultButton(back_btn)
+            box.exec()
+            if box.clickedButton() is back_btn:
+                return
+
         filename = f"Rudischwimmt Einteilung-{datetime.now():%Y-%m-%d_%H-%M-%S}.xlsx"
         file_path, _ = QFileDialog.getSaveFileName(
             self,
