@@ -1,10 +1,10 @@
 # -*- mode: python ; coding: utf-8 -*-
-
+from PyInstaller.utils.hooks import collect_dynamic_libs
 
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[],
+    binaries=collect_dynamic_libs('ortools'),
     datas=[],
     hiddenimports=[],
     hookspath=[],

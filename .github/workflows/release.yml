@@ -54,13 +54,10 @@ jobs:
       - name: Build executable
         run: pyinstaller RunningDinnerOptimizer.spec
 
-      - name: Package
-        run: Compress-Archive -Path dist/RunningDinnerOptimizer.exe -DestinationPath RunningDinnerOptimizer-windows.zip
-
       - uses: actions/upload-artifact@v4
         with:
           name: windows
-          path: RunningDinnerOptimizer-windows.zip
+          path: dist/RunningDinnerOptimizer.exe
 
   release:
     needs: [build-linux, build-windows]
